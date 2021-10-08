@@ -10,7 +10,7 @@ from neuralpredictors.layers.readouts import (
     MultiplePointPooled2d,
     MultipleFullSXF,
 )
-from utility.data_helpers import unpack_data_info
+from csng_invariances.utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
 

@@ -15,8 +15,8 @@ from neuralpredictors.training import (
 )
 from nnfabrik.utility.nn_helpers import set_random_seed
 
-from utility import measures
-from utility.measures import get_correlations, get_poisson_loss
+from csng_invariances.utility import measures
+from csng_invariances.utility.measures import get_correlations, get_poisson_loss
 
 
 def standard_trainer(

@@ -18,7 +18,7 @@ from neuralpredictors.data.transforms import (
     SelectInputChannel,
 )
 from neuralpredictors.data.samplers import SubsetSequentialSampler
-from utility.data_helpers import (
+from csng_invariances.utility.data_helpers import (
     get_oracle_dataloader,
     make_directories,
 )
