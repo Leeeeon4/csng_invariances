@@ -2,24 +2,22 @@
 CSNG: Finding Invariances in Sensory Coding
 ===========================================
 
-
-.. image:: https://img.shields.io/pypi/v/csng_invariances.svg
-        :target: https://pypi.python.org/pypi/csng_invariances
-
-.. image:: https://img.shields.io/travis/Leeeeon4/csng_invariances.svg
-        :target: https://travis-ci.com/Leeeeon4/csng_invariances
-
-.. image:: https://readthedocs.org/projects/csng-invariances/badge/?version=latest
-        :target: https://csng-invariances.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
-
-.. image:: https://pyup.io/repos/github/Leeeeon4/csng_invariances/shield.svg
-     :target: https://pyup.io/repos/github/Leeeeon4/csng_invariances/
-     :alt: Updates
-
-
 CSNG: Finding Invariances in Sensory Coding contains source code for invariance detection in sensory coding.
 
+.. image:: https://img.shields.io/pypi/v/csng_invariances.svg
+   :target: https://pypi.python.org/pypi/csng_invariances/
+
+.. image:: https://img.shields.io/pypi/l/csng_invariances.svg
+   :target: https://pypi.python.org/pypi/csng_invariances/
+
+.. image:: https://img.shields.io/pypi/pyversions/csng_invariances.svg
+   :target: https://pypi.python.org/pypi/csng_invariances/
+
+.. image:: https://readthedocs.org/projects/csng_invariances/badge/?version=latest
+   :target: https://csng_invariances.readthedocs.io/?badge=latest
+
+.. image:: https://app.travis-ci.com/Leeeeon4/csng_invariances.svg?branch=master
+   :target: https://app.travis-ci.com/Leeeeon4/csng_invariances
 
 * Free software: MIT license
 * Repository: https://github.com/Leeeeon4/csng_invariances
