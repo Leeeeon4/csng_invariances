@@ -7,6 +7,9 @@ reports/**
 # Models
 models/**
 
+# VS Code workspaces
+workspace.code-workspace
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
