@@ -18,7 +18,6 @@ colorama==0.4.4
 commonmark==0.9.1
 coverage==5.5
 cryptography==3.3.2
--e git+ssh://git@github.com/Leeeeon4/csng_invariances.git@0d4b233ea89283427f77595ffc24e148c7955c64#egg=csng_invariances
 cycler==0.10.0
 datajoint==0.13.2
 debugpy==1.4.3
