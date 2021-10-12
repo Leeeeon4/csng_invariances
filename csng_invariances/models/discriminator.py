@@ -1,8 +1,11 @@
 """Provide different discriminator models."""
 
+import torch
 from torch import nn
 import numpy as np
 import copy
+import requests
+from pathlib import Path
 
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import (
@@ -14,7 +17,40 @@ from csng_invariances.utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
 
+def download_pretrained_lurz_model():
+    """Download the pretrained lurz model.
+
+    Downloads the model into the models directory.
+    Only the core of the model is pretrained, the readout has to be trained for
+    the specific dataset.
+
+    Returns
+        pathlib.Path: Path to model
+    """
+    print("Downloading pretrained Lurz model.")
+    url = "https://github.com/sinzlab/Lurz_2020_code/raw/main/notebooks/models/transfer_model.pth.tar"
+    answer = requests.get(url, allow_redirects=True)
+    # make directory
+    file_dir = Path.cwd() / "models" / "external" / "lurz2020"
+    file_dir.mkdir(parents=True, exist_ok=True)
+    # save file
+    with open(file_dir / "transfer_model.pth.tar", "wb") as fd:
+        fd.write(answer.content)
+    print("Done")
+    return file_dir / "transfer_model.pth.tar"
+
+
 def get_core_trained_model(dataloaders):
+    """Load pretrained Lurz model.
+
+    Args:
+        dataloaders (OrderedDict): dictionary of dictionaries where the first
+            level keys are 'train', 'validation', and 'test', and second level
+            keys are data_keys.
+
+    Returns:
+        torch.nn.Module: pretrained model
+    """
 
     model_config = {
         "init_mu_range": 0.55,
@@ -33,11 +69,19 @@ def get_core_trained_model(dataloaders):
     }
 
     model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=1)
-
+    # Download pretrained model if not there
+    if (
+        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar"
+    ).is_file() is False:
+        download_pretrained_lurz_model()
+    # load model
     transfer_model = torch.load(
-        "models/transfer_model.pth.tar", map_location=torch.device("cpu")
+        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
+        map_location=torch.device("cpu"),
     )
     model.load_state_dict(transfer_model, strict=False)
+
+    return model
 
 
 class Encoder(nn.Module):

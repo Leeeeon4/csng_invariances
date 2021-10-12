@@ -28,7 +28,7 @@ from pathlib import Path
 from rich import print
 
 
-def get_lurz2020_data():
+def download_lurz2020_data():
     """Download and unzip Lurz et al. 2020 dataset
 
     Returns:
@@ -66,10 +66,10 @@ def get_dataloaders(cuda=False):
     # Checking if data is downloaded:
     lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
     if (lurz_dir / "README.md").is_file is False:
-        get_lurz2020_data()
+        download_lurz2020_data()
     # Building Dataloaders
     dataset_config = {
-        "paths": [str(lurz_dir / "static20457-5-9-preproc-0")],
+        "paths": [str(lurz_dir / "static20457-5-9-preproc0")],
         "batch_size": 64,
         "seed": 1,
         "cuda": cuda,

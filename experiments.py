@@ -36,9 +36,10 @@ if __name__ == "__main__":
     fil, neural_correlations = globally_regularized_linear_receptive_field(
         reg_factors, train_images, train_responses, val_images, val_responses
     )
-    global_reg_lurz = (Path.cwd() / "models" / t).mkdir(parents=True, exist_ok=True)
+    global_reg_lurz = Path.cwd() / "models" / t
+    global_reg_lurz.mkdir(parents=True, exist_ok=True)
     global_reg_lurz / "Globally_regularized_linear_filter_lurz.npy"
-    np.save(global_reg_lurz, fil)
+    np.save(str(global_reg_lurz), fil)
     print("\n-----------------------------------------------")
     print("Finished globally regularized linear receptive field estimate experiment.")
     print("-----------------------------------------------\n")
@@ -50,11 +51,12 @@ if __name__ == "__main__":
     fil, neural_correlations = individually_regularized_linear_receptive_field(
         reg_factors, train_images, train_responses, val_images, val_responses
     )
-    individual_reg_lurz = (Path.cwd() / "models" / t).mkdir(parents=True, exist_ok=True)
+    individual_reg_lurz = Path.cwd() / "models" / t
+    individual_reg_lurz.mkdir(parents=True, exist_ok=True)
     individual_reg_lurz = (
         individual_reg_lurz / "Individually_regularized_linear_filter_lurz.npy"
     )
-    np.save(individual_reg_lurz, fil)
+    np.save(str(individual_reg_lurz), fil)
     print("\n\n================================================")
     print("Lurz dataset concluded.")
     print("================================================\n\n")
@@ -88,13 +90,12 @@ if __name__ == "__main__":
         fil, neural_correlations = globally_regularized_linear_receptive_field(
             reg_factors, train_images, train_responses, val_images, val_responses
         )
-        global_reg_antolik = (Path.cwd() / "models" / t / region).mkdir(
-            parents=True, exist_ok=True
-        )
+        global_reg_antolik = Path.cwd() / "models" / t / region
+        global_reg_antolik.mkdir(parents=True, exist_ok=True)
         global_reg_antolik = (
             global_reg_antolik / "Globally_regularized_linear_filter_Antolik.npy"
         )
-        np.save(global_reg_antolik, fil)
+        np.save(str(global_reg_antolik), fil)
         print(
             "Finished globally regularized linear receptive field estimate experiment."
         )
@@ -108,13 +109,13 @@ if __name__ == "__main__":
         fil, neural_correlations = individually_regularized_linear_receptive_field(
             reg_factors, train_images, train_responses, val_images, val_responses
         )
-        global_reg_antolik = (Path.cwd() / "models" / t / region).mkdir(
-            parents=True, exist_ok=True
+        individual_reg_antolik = Path.cwd() / "models" / t / region
+        individual_reg_antolik.mkdir(parents=True, exist_ok=True)
+        individual_reg_antolik = (
+            individual_reg_antolik
+            / "Individually_regularized_linear_filter_Antolik.npy"
         )
-        global_reg_antolik = (
-            global_reg_antolik / "Individually_regularized_linear_filter_Antolik.npy"
-        )
-        np.save(global_reg_antolik, fil)
+        np.save(str(global_reg_antolik), fil)
         print("\n-----------------------------------------------")
         print(f"Conclude {region}.")
 
