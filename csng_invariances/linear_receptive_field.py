@@ -37,16 +37,7 @@ def get_lurz_dataset():
         Path.cwd() / "data" / "external" / "lurz2020" / "static20457-5-9-preproc0"
     )
     print(f"Loading dataset from {experiment_path}.")
-    dataloaders = lu.static_loaders(
-        **{
-            "paths": [experiment_path],
-            "batch_size": 64,
-            "seed": 1,
-            "cuda": False,
-            "normalize": True,
-            "exclude": "images",
-        }
-    )
+    dataloaders = lu.get_dataloaders()
     train_images, train_responses = lu.get_complete_dataset(dataloaders, "train")
     val_images, val_responses = lu.get_complete_dataset(dataloaders, "validation")
     return train_images, train_responses, val_images, val_responses
