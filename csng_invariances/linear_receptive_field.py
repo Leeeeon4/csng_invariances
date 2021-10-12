@@ -114,7 +114,7 @@ def globally_regularized_linear_receptive_field(
     fil = TrainFilter.train(parameter)
 
     # report linear filter
-    neural_correlations = ValFilter.evaluate(fil=fil, output=True)
+    neural_correlations = ValFilter.evaluate(fil=fil, output=False)
 
     return fil, neural_correlations
 

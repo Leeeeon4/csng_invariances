@@ -1,6 +1,7 @@
 import numpy as np
 from rich import print
 from csng_invariances.linear_receptive_field import *
+import datetime
 
 
 if __name__ == "__main__":
@@ -25,15 +26,19 @@ if __name__ == "__main__":
     print("-----------------------------------------------\n")
 
     # testdata
-    train_images, train_responses, val_images, val_responses = get_test_dataset()
+    # train_images, train_responses, val_images, val_responses = get_test_dataset()
 
     # Global regularization
     print("\n-----------------------------------------------")
     print("Begin globally regularized linear receptive field estimate experiments.")
     print("-----------------------------------------------\n")
-    globally_regularized_linear_receptive_field(
+    t = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+    fil, neural_correlations = globally_regularized_linear_receptive_field(
         reg_factors, train_images, train_responses, val_images, val_responses
     )
+    global_reg_lurz = (Path.cwd() / "models" / t).mkdir(parents=True, exist_ok=True)
+    global_reg_lurz / "Globally_regularized_linear_filter_lurz.npy"
+    np.save(global_reg_lurz, fil)
     print("\n-----------------------------------------------")
     print("Finished globally regularized linear receptive field estimate experiment.")
     print("-----------------------------------------------\n")
@@ -42,9 +47,14 @@ if __name__ == "__main__":
     print("\n-----------------------------------------------")
     print("Begin indivially regularized linear receptive field estimate experiment.")
     print("-----------------------------------------------\n")
-    individually_regularized_linear_receptive_field(
+    fil, neural_correlations = individually_regularized_linear_receptive_field(
         reg_factors, train_images, train_responses, val_images, val_responses
     )
+    individual_reg_lurz = (Path.cwd() / "models" / t).mkdir(parents=True, exist_ok=True)
+    individual_reg_lurz = (
+        individual_reg_lurz / "Individually_regularized_linear_filter_lurz.npy"
+    )
+    np.save(individual_reg_lurz, fil)
     print("\n\n================================================")
     print("Lurz dataset concluded.")
     print("================================================\n\n")
@@ -70,14 +80,21 @@ if __name__ == "__main__":
             f"{train_images.shape}\n{train_responses.shape}\n{val_images.shape}\n{val_responses.shape}"
         )
         # Testdata
-        train_images, train_responses, val_images, val_responses = get_test_dataset()
+        # train_images, train_responses, val_images, val_responses = get_test_dataset()
 
         # Global regularization
         print("Begin globally regularized linear receptive field estimate experiments.")
         print("-----------------------------------------------\n")
-        globally_regularized_linear_receptive_field(
+        fil, neural_correlations = globally_regularized_linear_receptive_field(
             reg_factors, train_images, train_responses, val_images, val_responses
         )
+        global_reg_antolik = (Path.cwd() / "models" / t / region).mkdir(
+            parents=True, exist_ok=True
+        )
+        global_reg_antolik = (
+            global_reg_antolik / "Globally_regularized_linear_filter_Antolik.npy"
+        )
+        np.save(global_reg_antolik, fil)
         print(
             "Finished globally regularized linear receptive field estimate experiment."
         )
@@ -88,9 +105,16 @@ if __name__ == "__main__":
             "Begin indivially regularized linear receptive field estimate experiment."
         )
         print("-----------------------------------------------\n")
-        individually_regularized_linear_receptive_field(
+        fil, neural_correlations = individually_regularized_linear_receptive_field(
             reg_factors, train_images, train_responses, val_images, val_responses
         )
+        global_reg_antolik = (Path.cwd() / "models" / t / region).mkdir(
+            parents=True, exist_ok=True
+        )
+        global_reg_antolik = (
+            global_reg_antolik / "Individually_regularized_linear_filter_Antolik.npy"
+        )
+        np.save(global_reg_antolik, fil)
         print("\n-----------------------------------------------")
         print(f"Conclude {region}.")
 
