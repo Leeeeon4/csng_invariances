@@ -119,3 +119,10 @@ ENV/
 
 # MacOS fIles
 .DS_Store
+
+#others venvs
+venv_wm/**
+venv_gpu1/**
+venv_gpu2/**
+venv_gpu3/**
+
