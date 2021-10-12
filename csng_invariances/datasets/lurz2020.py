@@ -52,6 +52,70 @@ def get_lurz2020_data():
     return data_external_lurz_directory
 
 
+def get_dataloaders(cuda=False):
+    """Return dataloader
+
+    Args:
+        cuda (bool, optional): If True, use GPU. Defaults to False.
+
+    Returns:
+        OrderedDict: [dictionary of dictionaries where the first level keys are
+            'train', 'validation', and 'test', and second level keys are
+            data_keys.
+    """
+    # Checking if data is downloaded:
+    lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
+    if (lurz_dir / "README.md").is_file is False:
+        get_lurz2020_data()
+    # Building Dataloaders
+    dataset_config = {
+        "paths": [str(lurz_dir / "static20457-5-9-preproc-0")],
+        "batch_size": 64,
+        "seed": 1,
+        "cuda": cuda,
+        "normalize": True,
+        "exclude": "images",
+    }
+    dataloaders = static_loaders(**dataset_config)
+    return dataloaders
+
+
+def get_complete_dataset(dataloaders, key="train", dataset_name="20457-5-9-0"):
+    """Load complete dataset to memory.
+
+    Based on example code of Lurz et al. 2020 source code.
+
+    Args:
+        dataloaders (OrderedDict): dictionary of dictionaries where the first level
+            keys are 'train', 'validation', and 'test', and second level keys are
+            data_keys.
+        key (string, optional): Data. Defaults to train.
+        dataset_name (string, optional): Dataset. Defaults to '20457-5-9-0'.
+
+    Returns:
+        Tuple: Tuple of images_tensor and responses_tensor
+    """
+    images, responses = [], []
+    for x, y in dataloaders[key][dataset_name]:
+        images.append(x.squeeze().cpu().data.numpy())
+        responses.append(y.squeeze().cpu().data.numpy())
+
+    images_tensor = torch.tensor(np.vstack(images))
+    responses_tensor = torch.tensor(np.vstack(responses))
+
+    neuron_count = responses_tensor.shape[1]
+    image_count = responses_tensor.shape[0]
+
+    images_tensor = images_tensor.reshape(
+        image_count, 1, images_tensor.shape[1], images_tensor.shape[2]
+    )
+
+    print(
+        f"The {key} set of dataset {dataset_name} contains the responses of {neuron_count} neurons to {image_count} images."
+    )
+    return images_tensor, responses_tensor
+
+
 def static_loader(
     path,
     batch_size,
@@ -490,42 +554,6 @@ def static_shared_loaders(
             dls[k][data_key] = loaders[k]
 
     return dls
-
-
-def get_complete_dataset(dataloaders, key="train", dataset_name="20457-5-9-0"):
-    """Load complete dataset to memory.
-
-    Based on example code of Lurz et al. 2020 source code.
-
-    Args:
-        dataloaders (OrderedDict): dictionary of dictionaries where the first level
-            keys are 'train', 'validation', and 'test', and second level keys are
-            data_keys.
-        key (string, optional): Data. Defaults to train.
-        dataset_name (string, optional): Dataset. Defaults to '20457-5-9-0'.
-
-    Returns:
-        Tuple: Tuple of images_tensor and responses_tensor
-    """
-    images, responses = [], []
-    for x, y in dataloaders[key][dataset_name]:
-        images.append(x.squeeze().cpu().data.numpy())
-        responses.append(y.squeeze().cpu().data.numpy())
-
-    images_tensor = torch.tensor(np.vstack(images))
-    responses_tensor = torch.tensor(np.vstack(responses))
-
-    neuron_count = responses_tensor.shape[1]
-    image_count = responses_tensor.shape[0]
-
-    images_tensor = images_tensor.reshape(
-        image_count, 1, images_tensor.shape[1], images_tensor.shape[2]
-    )
-
-    print(
-        f"The {key} set of dataset {dataset_name} contains the responses of {neuron_count} neurons to {image_count} images."
-    )
-    return images_tensor, responses_tensor
 
 
 if __name__ == "__main__":

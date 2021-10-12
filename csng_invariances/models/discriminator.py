@@ -14,6 +14,32 @@ from csng_invariances.utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
 
+def get_core_trained_model(dataloaders):
+
+    model_config = {
+        "init_mu_range": 0.55,
+        "init_sigma": 0.4,
+        "input_kern": 15,
+        "hidden_kern": 13,
+        "gamma_input": 1.0,
+        "grid_mean_predictor": {
+            "type": "cortex",
+            "input_dimensions": 2,
+            "hidden_layers": 0,
+            "hidden_features": 0,
+            "final_tanh": False,
+        },
+        "gamma_readout": 2.439,
+    }
+
+    model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=1)
+
+    transfer_model = torch.load(
+        "models/transfer_model.pth.tar", map_location=torch.device("cpu")
+    )
+    model.load_state_dict(transfer_model, strict=False)
+
+
 class Encoder(nn.Module):
     """This class was provided by Lurz et al. ICLR 2021: GENERALIZATION IN
     DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX."""
@@ -868,9 +894,5 @@ class ExampleDiscriminator(nn.Module):
 # """Docstring forward-method documentation"""
 # pass
 
-dictionary = {
-    1: "bla",
-    2: "bla",
-    3: "sadf",
-    4: "sdafsdfsdfsdfsdfsdfsdfsdfsdfsdfsfsdfsfsdfsfsdfsdffsdfsdfsdf",
-}
+if __name__ == "__main__":
+    pass

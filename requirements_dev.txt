@@ -18,7 +18,6 @@ colorama==0.4.4
 commonmark==0.9.1
 coverage==5.5
 cryptography==3.3.2
--e git+ssh://git@github.com/Leeeeon4/csng_invariances.git@0d4b233ea89283427f77595ffc24e148c7955c64#egg=csng_invariances
 cycler==0.10.0
 datajoint==0.13.2
 debugpy==1.4.3
@@ -32,7 +31,6 @@ flake8==3.9.2
 Flask==2.0.1
 gitdb==4.0.7
 GitPython==3.1.24
-h5py==3.4.0
 idna==3.2
 imagesize==1.2.0
 importlib-metadata==4.8.1
@@ -69,7 +67,6 @@ neuralpredictors==0.0.1
 nnfabrik==0.0.1
 notebook==6.4.4
 numpy==1.21.2
-opencv-python==4.5.3.56
 otumat==0.2.0
 packaging==21.0
 pandas==1.3.3
@@ -136,7 +133,6 @@ twine==3.4.2
 typing-extensions==3.10.0.2
 urllib3==1.26.7
 virtualenv==20.8.0
-watchdog==2.1.5
 wcwidth==0.2.5
 webencodings==0.5.1
 Werkzeug==2.0.1
