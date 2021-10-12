@@ -47,7 +47,6 @@ def download_lurz2020_data():
         zip_ref.extractall(data_external_lurz_directory)
     zip = Path.cwd() / zip
     zip.unlink()
-    zip.unlink()
     print("Finished downlading and extracting dataset")
     return data_external_lurz_directory
 
@@ -65,7 +64,7 @@ def get_dataloaders(cuda=False):
     """
     # Checking if data is downloaded:
     lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
-    if (lurz_dir / "README.md").is_file is False:
+    if (lurz_dir / "README.md").is_file() is False:
         download_lurz2020_data()
     # Building Dataloaders
     dataset_config = {
