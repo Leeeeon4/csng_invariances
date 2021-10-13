@@ -107,6 +107,7 @@ def main():
 
         # Store filter
         global_reg_antolik = Path.cwd() / "models" / t / region
+        global_reg_antolik.mkdir(parents=True, exist_ok=True)
         global_reg_antolik = (
             global_reg_antolik / "Globally_regularized_linear_filter_Antolik.npy"
         )
