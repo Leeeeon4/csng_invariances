@@ -84,12 +84,8 @@ class Filter:
         self.time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
         self.model_dir = Path.cwd() / "models" / "linear_filter" / self.time
         self.model_dir.mkdir(parents=True, exist_ok=True)
-        self.report_dir = Path.cwd() / "reports" / "linear_filter" / self.time
-        self.report_dir.mkdir(parents=True, exist_ok=True)
-        self.figure_dir = (
-            Path.cwd() / "reports" / "figures" / "linear_filter" / self.time
-        )
-        self.figure_dir.mkdir(parents=True, exist_ok=True)
+        self.report_dir = None
+        self.figure_dir = None
         self.fil = None
         self.prediction = None
         self.corr = None
@@ -126,20 +122,28 @@ class Filter:
                 self.single_neuron_correlations[neuron] = single_corr
         return self.prediction, self.corr
 
-    def evaluate(self, fil=None, reports=True, store_images=False):
+    def evaluate(self, fil=None, reports=True, store_images=False, report_dir=None):
         """Generate fit report of Filter.
 
         If no filter is passed, the computed filter is used.
 
         Args:
-            fil (np.array): Filter to use for report. Defaults to None.
-            reports (bool, optional): If True evaluation reports are stored. Defaults to True.
+            fil (np.array, optional): Filter to use for report. Defaults to None.
+            reports (bool, optional): If True evaluation reports are stored.
+                Defaults to True.
             store_images (bool, optional): If True images of lin. receptive fields
                 and their correlation are depicted. Defaults to False.
+            report_dir (Path, optional): Path to use to store report. Defaults
+                to None.
 
         Returns:
             dict: Dictionary of Neurons and Correlations
         """
+        if report_dir is None:
+            self.report_dir = Path.cwd() / "reports" / "linear_filter" / self.time
+            self.report_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.report_dir = report_dir
         computed_prediction = self._handle_evaluate_parsing(fil)
         fil = _reshape_filter_2d(fil)
         # Make report
@@ -152,6 +156,10 @@ class Filter:
                 computed_prediction[:, neuron], self.responses[:, neuron]
             )[0, 1]
             if store_images:
+                self.figure_dir = (
+                    Path.cwd() / "reports" / "figures" / "linear_filter" / self.time
+                )
+                self.figure_dir.mkdir(parents=True, exist_ok=True)
                 fig, ax = plt.subplots(figsize=figure_sizes["half"])
                 im = ax.imshow(fil[:, neuron].reshape(self.dim1, self.dim2))
                 ax.set_title(f"Neuron: {neuron} | Correlation: {round(corr*100,2)}%")
@@ -162,11 +170,24 @@ class Filter:
                 )
                 plt.close()
             self.neural_correlations[neuron] = corr
+        self.fil = fil
+        self._fil_4d()
         if reports:
             print(f"Reports are stored at {self.report_dir}")
             with open(self.report_dir / "Correlations.csv", "w") as file:
                 for key in self.neural_correlations:
                     file.write("%s,%s\n" % (key, self.neural_correlations[key]))
+            print(f"Filter is stored at {self.model_dir}")
+            np.save(str(self.model_dir / "evaluated_filter.npy"), self.fil)
+            with open(self.model_dir / "readme.txt", "w") as file:
+                file.write(
+                    (
+                        "evaluated_filter.npy contains a 4D representation "
+                        "of a linear filter used to estimate the linear "
+                        "receptive field of neurons.\nThe dimension are: "
+                        f"(neuron, channels, dim1, dim2): {self.fil.shape}"
+                    )
+                )
         print("Reporting procedure concluded.")
         return self.neural_correlations
 
@@ -462,9 +483,20 @@ class Hyperparametersearch:
         )
         self.avg_correlation = self.df_corrs.max().mean()
         if self.report:
-            np.save(self.report_dir / "report.npy", self.results)
-            with open(self.report_dir / f"average_correlation.txt", "w") as f:
+            np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
+            with open(self.report_dir / "average_correlation.txt", "w") as f:
                 f.write(str(self.avg_correlation))
+            with open(self.report_dir / "readme.txt", "w") as f:
+                f.write(
+                    (
+                        "average_correlation.txt contains the average correlation "
+                        "of the best hyperparameters. hyperparametersearch_report "
+                        ".npy contains a 2D array, where column one represents the "
+                        "the neurons, column two the regularization factor and "
+                        "column three the single neuron correlation of the filter "
+                        "prediction and the real responses."
+                    )
+                )
         return self.results, self.avg_correlation
 
     def get_parameters(self):
@@ -477,7 +509,11 @@ class GlobalHyperparametersearch(Hyperparametersearch):
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
-            Path.cwd() / "reports" / "global_hyperparametersearch" / self.time
+            Path.cwd()
+            / "reports"
+            / "linear_filter"
+            / "global_hyperparametersearch"
+            / self.time
         )
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -507,9 +543,6 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
-    def compute_best_parameter(self):
-        return super().compute_best_parameter()
-
     def get_parameters(self):
         """Get optimized hyperparameters."""
         return self.hyperparameters[0]
@@ -521,7 +554,11 @@ class IndividualHyperparametersearch(Hyperparametersearch):
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
-            Path.cwd() / "reports" / "individual_hyperparametersearch" / self.time
+            Path.cwd()
+            / "reports"
+            / "linear_filter"
+            / "individual_hyperparametersearch"
+            / self.time
         )
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -542,9 +579,6 @@ class IndividualHyperparametersearch(Hyperparametersearch):
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
-
-    def compute_best_parameter(self):
-        return super().compute_best_parameter()
 
     def get_parameters(self):
         """Get optimized hyperparameters."""

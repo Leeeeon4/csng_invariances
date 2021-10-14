@@ -3,12 +3,19 @@
 import numpy as np
 import matplotlib as mpl
 from rich import print
-from csng_invariances.linear_receptive_field import *
+from linear_receptive_field import *
 
 
 def linear_receptive_field_experiments():
+    """Run linear receptive field experiment.
+
+    For the Lurz dataset the first a hyperparametersearch, then a filter
+    evaluation based on the hyper parametersearch is conducted when global
+    regulariztaion is used, then when single neuron regularization is used.
+    For the Antolik dataset this is done for each of the three regions.
+    """
     ########################## Regularization factors #########################
-    reg_factors = [1 * 10 ** x for x in np.linspace(0, 2, 7)]
+    reg_factors = [1 * 10 ** x for x in np.linspace(-5, 5, 25)]
 
     ################################## Lurz ###################################
 
@@ -22,9 +29,6 @@ def linear_receptive_field_experiments():
         val_images,
         val_responses,
     ) = get_lurz_dataset()
-    print(
-        f"{train_images.shape}\n{train_responses.shape}\n{val_images.shape}\n{val_responses.shape}"
-    )
     print("-----------------------------------------------\n")
 
     ########################## Global regularization ##########################
@@ -73,9 +77,6 @@ def linear_receptive_field_experiments():
             val_images,
             val_responses,
         ) = get_antolik_dataset(region)
-        print(
-            f"{train_images.shape}\n{train_responses.shape}\n{val_images.shape}\n{val_responses.shape}"
-        )
 
         ######################## Global regularization ########################
         print("Begin globally regularized linear receptive field estimate experiments.")

@@ -3,13 +3,12 @@
 
 from pathlib import Path
 from rich import print
-import csng_invariances.datasets.antolik2016 as al
-import csng_invariances.datasets.lurz2020 as lu
-import csng_invariances.utility.lin_filter as lin_fil
-from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
+import datasets.antolik2016 as al
+import datasets.lurz2020 as lu
+import utility.lin_filter as lin_fil
+from utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
 
 
-# Lurz
 def get_lurz_dataset():
     """Get Lurz data.
 
@@ -27,7 +26,6 @@ def get_lurz_dataset():
     return train_images, train_responses, val_images, val_responses
 
 
-# Antolik
 def get_antolik_dataset(region):
     """Get Antolik data.
 
@@ -94,7 +92,7 @@ def globally_regularized_linear_receptive_field(
     fil = TrainFilter.train(parameters)
 
     # report linear filter
-    ValFilter.evaluate(fil=fil)
+    ValFilter.evaluate(fil=fil, report_dir=Hyperparametersearch.report_dir)
 
 
 def individually_regularized_linear_receptive_field(
@@ -140,7 +138,7 @@ def individually_regularized_linear_receptive_field(
     fil = TrainFilter.train(parameters)
 
     # report linear filter
-    ValFilter.evaluate(fil=fil)
+    ValFilter.evaluate(fil=fil, report_dir=Hyperparametersearch.report_dir)
 
 
 if __name__ == "__main__":

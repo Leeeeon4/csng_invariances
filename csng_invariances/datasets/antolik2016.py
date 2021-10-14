@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import Dataset
 import requests
 import zipfile
-from csng_invariances.utility.data_helpers import make_directories
+from utility.data_helpers import make_directories
 from rich import print
 
 
