@@ -11,20 +11,6 @@ import csng_invariances.utility.lin_filter as lin_fil
 from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
 
 
-# Testdata
-def get_test_dataset():
-    """Return small dataset for testing.
-
-    Returns:
-        tuple: Tuple of train_images, train_responses, val_images and val_responses.
-    """
-    train_images = torch.from_numpy(np.random.randn(100, 1, 12, 13))
-    train_responses = torch.from_numpy(np.random.randn(100, 14))
-    val_images = torch.from_numpy(np.random.randn(20, 1, 12, 13))
-    val_responses = torch.from_numpy(np.random.randn(20, 14))
-    return train_images, train_responses, val_images, val_responses
-
-
 # Lurz
 def get_lurz_dataset():
     """Get Lurz data.
@@ -84,7 +70,8 @@ def globally_regularized_linear_receptive_field(
         val_responses (np.array): 2D representation of val response data.
 
     Returns:
-        tuple: tuple of filter and dictionary of neurons and single neuron correlation.
+        tuple: tuple of dict of regularization factors and correlations,filter
+            and dictionary of neurons and single neuron correlation.
     """
 
     # Build filters for estimation of linear receptive field
@@ -99,15 +86,17 @@ def globally_regularized_linear_receptive_field(
     print(
         f"Conducting hyperparametersearch for regularization factor from:\n{reg_factors}."
     )
-    parameter, _ = lin_fil.conduct_global_hyperparametersearch(
+    Hyperparametersearch = lin_fil.GlobalHyperparametersearch(
         TrainFilter, ValFilter, reg_factors
     )
-    fil = TrainFilter.train(parameter)
+    Hyperparametersearch.conduct_search()
+    Hyperparametersearch.compute_best_parameter()
+    parameters = Hyperparametersearch.get_parameters()
+
+    fil = TrainFilter.train(parameters)
 
     # report linear filter
-    neural_correlations = ValFilter.evaluate(fil=fil, output=False)
-
-    return fil, neural_correlations
+    ValFilter.evaluate(fil=fil)
 
 
 def individually_regularized_linear_receptive_field(
@@ -128,7 +117,9 @@ def individually_regularized_linear_receptive_field(
         val_responses (np.array): 2D representation of val response data.
 
     Returns:
-        tuple: tuple of filter and dictionary of neurons and single neuron correlation.
+        tuple: tuple of 2D array of neuron, regularization factor and single neuron
+            correlation, filter and dictionary of neurons and single neuron
+            correlation.
     """
     # Build filters for estimation of linear receptive field
     TrainFilter = lin_fil.IndividualRegularizationFilter(
@@ -142,16 +133,16 @@ def individually_regularized_linear_receptive_field(
     print(
         f"Conducting hyperparametersearch for regularization factor from:\n{reg_factors}"
     )
-    hyperparametersearch = lin_fil.conduct_individual_hyperparametersearch(
+    Hyperparametersearch = lin_fil.IndividualHyperparametersearch(
         TrainFilter, ValFilter, reg_factors
     )
-    regularization_factors = hyperparametersearch[:, 1]
-    fil = TrainFilter.train(regularization_factors)
+    Hyperparametersearch.conduct_search()
+    Hyperparametersearch.compute_best_parameter()
+    parameters = Hyperparametersearch.get_parameters()
+    fil = TrainFilter.train(parameters)
 
     # report linear filter
-    neural_correlations = ValFilter.evaluate(fil=fil, output=False)
-
-    return fil, neural_correlations
+    ValFilter.evaluate(fil=fil)
 
 
 if __name__ == "__main__":
