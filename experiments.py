@@ -7,7 +7,7 @@ import datetime
 
 def main():
     ######################### Regularization factors ########################
-    reg_factors = [1 * 10 ** x for x in np.linspace(0, 2, 10)]
+    reg_factors = [1 * 10 ** x for x in np.linspace(0, 2, 7)]
 
     ############################### Lurz ###############################
     ############################### Data ###############################

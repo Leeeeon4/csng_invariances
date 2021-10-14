@@ -1,9 +1,7 @@
 """Module providing functions for conducting linear receptive field estimate experiments.
 """
 
-import numpy as np
 from pathlib import Path
-import torch
 from rich import print
 import csng_invariances.datasets.antolik2016 as al
 import csng_invariances.datasets.lurz2020 as lu

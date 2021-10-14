@@ -4,13 +4,10 @@ import numpy as np
 from numpy.linalg import pinv
 import pandas as pd
 import matplotlib.pyplot as plt
-from csng_invariances.utility.data_helpers import make_directories
 import datetime
 from rich import print
 from rich.progress import track
-import csv
 from pathlib import Path
-import torch
 
 
 figure_sizes = {
@@ -100,13 +97,16 @@ class Filter:
     def train(self):
         None
 
-    def predict(self, fil=None):
+    def predict(self, fil=None, single_neuron_correlation=False):
         """Predict response on filter.
 
         If no filter is passed, the computed filter is used.
 
         Args:
-            fil (np.array): Filter to use for prediction. Defaults to None.
+            fil (np.array, optional): Filter to use for prediction. Defaults to
+                None.
+            singel_neuron_correlation (bool, optional): If True, compute single
+                neuron correlation. Defaults to False.
 
         Returns:
             tuple: tuple of predictions and correlation
@@ -117,6 +117,13 @@ class Filter:
         self.corr = np.corrcoef(self.prediction.flatten(), self.responses.flatten())[
             0, 1
         ]
+        if single_neuron_correlation:
+            self.single_neuron_correlations = np.empty(self.neuron_count)
+            for neuron in range(self.neuron_count):
+                pred = self.prediction[:, neuron]
+                resp = self.responses[:, neuron]
+                single_corr = np.corrcoef(pred, resp)[0, 1]
+                self.single_neuron_correlations[neuron] = single_corr
         return self.prediction, self.corr
 
     def evaluate(self, fil=None, reports=True, store_images=False):
@@ -380,15 +387,6 @@ class GlobalRegularizationFilter(Filter):
         self._fil_4d()
         return self.fil
 
-    def predict(self, fil=None):
-        return super().predict(fil=fil)
-
-    def evaluate(self, fil=None, reports=True, store_images=False):
-        return super().evaluate(fil=fil, reports=reports, store_images=store_images)
-
-    def select_neurons(self):
-        return super().select_neurons()
-
 
 class IndividualRegularizationFilter(Filter):
     """Individually regularized linear filter class.
@@ -414,7 +412,6 @@ class IndividualRegularizationFilter(Filter):
         """
         reg_factors = self._handle_train_parsing(reg_factors)
         filters = np.empty((self.dim1 * self.dim2, self.neuron_count))
-        # TODO hier könnte der Bug: Wieso durch reg factor iterieren
         for neuron, reg_factor in zip(range(self.neuron_count), reg_factors):
             self._image_2d()
             response = self.responses[:, neuron].reshape(self.image_count, 1)
@@ -424,17 +421,10 @@ class IndividualRegularizationFilter(Filter):
         self._fil_4d()
         return self.fil
 
-    def predict(self, fil=None):
-        return super().predict(fil=fil)
-
-    def evaluate(self, fil=None, reports=True, store_images=False):
-        return super().evaluate(fil=fil, reports=reports, store_images=store_images)
-
-    def select_neurons(self):
-        return super().select_neurons()
-
 
 class Hyperparametersearch:
+    """Class of hyperparametersearches of linear filters."""
+
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         self.TrainFilter = TrainFilter
         self.ValidationFilter = ValidationFilter
@@ -457,12 +447,9 @@ class Hyperparametersearch:
                 correlation col vector] and average correlation.
         """
         self.hyperparameters = np.empty(self.neuron_count)
-        print(self.df_corrs)
         self.df_corrs.to_clipboard()
         mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
-        print(mask)
         masked = self.df_params[mask].values.flatten()
-        print(masked)
         self.hyperparameters = masked[masked == masked.astype(float)].reshape(
             self.neuron_count, 1
         )
@@ -485,6 +472,8 @@ class Hyperparametersearch:
 
 
 class GlobalHyperparametersearch(Hyperparametersearch):
+    """Hyperparametersearch for globally regularized linear filters."""
+
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
@@ -527,6 +516,8 @@ class GlobalHyperparametersearch(Hyperparametersearch):
 
 
 class IndividualHyperparametersearch(Hyperparametersearch):
+    """Class of hyperparametersearch for single neuron regularized linear filters."""
+
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
@@ -535,24 +526,18 @@ class IndividualHyperparametersearch(Hyperparametersearch):
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
     def conduct_search(self):
-        # TODO correct logic
         self.params = np.empty((self.neuron_count, len(self.reg_factors)))
         self.corrs = np.empty((self.neuron_count, len(self.reg_factors)))
         print("Beginning hyperparametersearch.")
-        for neuron in track(range(self.TrainFilter.neuron_count)):
-            for reg_factor in self.reg_factors:
-                reg_factor = [reg_factor for i in range(self.TrainFilter.neuron_count)]
-                print(reg_factor)
-                filter = self.TrainFilter.train(reg_factor)
-                print(np.sum(filter))
-                predictions, _ = self.ValidationFilter.predict(filter)
-                prediction = predictions[:, neuron]
-                response = self.ValidationFilter.responses[:, neuron]
-                correlation = np.corrcoef(response, prediction)[0, 1]
-                self.corrs[neuron] = correlation
+        for counter, reg_factor in track(
+            enumerate(self.reg_factors), total=len(self.reg_factors)
+        ):
+            reg_factor = [reg_factor for i in range(self.neuron_count)]
+            filter = self.TrainFilter.train(reg_factor)
+            self.ValidationFilter.predict(filter, True)
+            self.params[:, counter] = reg_factor
+            self.corrs[:, counter] = self.ValidationFilter.single_neuron_correlations
         print("Hyperparametersearch concluded.")
-        for neuron in range(self.neuron_count):
-            self.params[neuron] = self.reg_factors
         self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
