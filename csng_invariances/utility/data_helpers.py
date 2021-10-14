@@ -1,7 +1,22 @@
 import numpy as np
+import torch
 import torch.utils.data as utils
 from pathlib import Path
 from neuralpredictors.data.samplers import RepeatsBatchSampler
+
+
+# Testdata
+def get_test_dataset():
+    """Return small dataset for testing.
+
+    Returns:
+        tuple: Tuple of train_images, train_responses, val_images and val_responses.
+    """
+    train_images = torch.from_numpy(np.random.randn(100, 1, 12, 13))
+    train_responses = torch.from_numpy(np.random.randn(100, 14))
+    val_images = torch.from_numpy(np.random.randn(20, 1, 12, 13))
+    val_responses = torch.from_numpy(np.random.randn(20, 14))
+    return train_images, train_responses, val_images, val_responses
 
 
 def normalize_tensor_to_0_1(tensor):
