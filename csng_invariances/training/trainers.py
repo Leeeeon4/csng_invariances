@@ -1,11 +1,15 @@
 """This module was provided by Lurz et al. ICLR 2021: GENERALIZATION IN
-DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX."""
+DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX.
+
+The modul was altered to incorporate weights and biases logging.
+"""
 
 
 from functools import partial
 import numpy as np
 import torch
 from tqdm import tqdm
+import wandb
 
 from neuralpredictors import measures as mlmeasures
 from neuralpredictors.training import (
