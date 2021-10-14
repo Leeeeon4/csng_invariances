@@ -468,7 +468,6 @@ class Hyperparametersearch:
                 correlation col vector] and average correlation.
         """
         self.hyperparameters = np.empty(self.neuron_count)
-        self.df_corrs.to_clipboard()
         mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
         masked = self.df_params[mask].values.flatten()
         self.hyperparameters = masked[masked == masked.astype(float)].reshape(
