@@ -1,10 +1,7 @@
-#%%
-import numpy as np
+import argparse
 
-a = np.load(
-    "/Users/leongorissen/csng_invariances/reports/global_hyperparametersearch/2021-10-14_17:10:23/hyperparametersearch_report.npy"
-)
-a
-# %%
-a.shape
-# %%
+parser = argparse.ArgumentParser()
+parser.add_argument("--quatsch", help="increase output verbosity")
+args = parser.parse_args()
+if args.quatsch:
+    print(f"verbosity turned on. {args.quatsch}")

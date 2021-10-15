@@ -1,12 +1,29 @@
 """Module provding CNN encoding functionality."""
 
+from torch._C import BoolType
 from datasets.lurz2020 import get_dataloaders, static_loaders
 from models.discriminator import get_core_trained_model
 from training.trainers import standard_trainer as trainer
 import torch
+import argparse
+from rich import print
 
 
-def train_encoding():
+def train_encoding(
+    detach_core=True,
+    avg_loss=False,
+    scale_loss=False,
+    loss_accum_batch_n=None,
+    interval=1,
+    patience=5,
+    lr_init=0.005,
+    max_iter=200,
+    maximize=True,
+    tolerance=1e-6,
+    lr_decay_steps=3,
+    lr_decay_factor=0.3,
+    min_lr=0.0001,
+):
     """Train the encoding model.
 
     Returns:
@@ -23,17 +40,38 @@ def train_encoding():
     model = get_core_trained_model(dataloaders)
 
     # If you want to allow fine tuning of the core, set detach_core to False
-    detach_core = False
     if detach_core:
         print("Core is fixed and will not be fine-tuned")
     else:
         print("Core will be fine-tuned")
 
+    # trainer_config = {"track_training": True, "detach_core": detach_core}
+
     trainer_config = {
+        "avg_loss": avg_loss,
+        "scale_loss": scale_loss,
+        "loss_function": "PoissonLoss",
+        "stop_function": "get_correlations",
+        "loss_accum_batch_n": loss_accum_batch_n,
+        "device": device,
+        "verbose": True,
+        "interval": interval,
+        "patience": patience,
+        "epoch": 0,
+        "lr_init": lr_init,
+        "max_iter": max_iter,
+        "maximize": maximize,
+        "tolerance": tolerance,
+        "restore_best": True,
+        "lr_decay_steps": lr_decay_steps,
+        "lr_decay_factor": lr_decay_factor,
+        "min_lr": min_lr,
+        "cb": None,
         "track_training": True,
+        "return_test_score": False,
         "detach_core": detach_core,
-        "max_iter": 200,
     }
+    print(f"Running current training config:\n{trainer_config}")
 
     # Run trainer
     score, output, model_state = trainer(
@@ -84,4 +122,33 @@ def evaluate_encoding(model, dataloaders, device, dataset_config):
 
 
 if __name__ == "__main__":
-    train_encoding()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--avg_loss", type=bool)
+    parser.add_argument("--scale_loss", type=bool)
+    parser.add_argument("--detach_core", type=bool)
+    parser.add_argument("--loss_accum_batch_n", type=int)
+    parser.add_argument("--interval", type=int)
+    parser.add_argument("--patience", type=int)
+    parser.add_argument("--lr_init", type=float)
+    parser.add_argument("--max_iter", type=int)
+    parser.add_argument("--maximize", type=bool)
+    parser.add_argument("--tolerance", type=float)
+    parser.add_argument("--lr_decay_steps", type=int)
+    parser.add_argument("--lr_decay_factor", type=float)
+    parser.add_argument("--min_lr", type=float)
+    args = parser.parse_args()
+    train_encoding(
+        # args.detach_core,
+        # args.avg_loss,
+        # args.scale_loss,
+        # args.loss_accum_batch_n,
+        # args.interval,
+        # args.patience,
+        # args.lr_init,
+        # args.max_iter,
+        # args.maximize,
+        # args.tolerance,
+        # args.lr_decay_steps,
+        # args.lr_decay_factor,
+        # args.min_lr,
+    )

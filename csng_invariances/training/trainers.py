@@ -233,6 +233,7 @@ def standard_trainer(
             # log wandb
             wandb.log(
                 {
+                    "loss": loss,
                     "poisson_loss": posisson_loss,
                     "correlation": correlation,
                     "learning_rate": current_lr,
