@@ -888,7 +888,7 @@ class ExampleDiscriminator(nn.Module):
 
     def _init_layers(self, layers):
         """Initialize the layers and store as self.module_list.
-
+ 
         Args:
             layers (List[int]): A list of layer widths including output width.
         """

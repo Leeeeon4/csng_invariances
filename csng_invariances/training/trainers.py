@@ -103,6 +103,9 @@ def standard_trainer(
         )
 
     ##### Model training ####################################################################################################
+
+    wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
+
     model.to(device)
     set_random_seed(seed)
     model.train()

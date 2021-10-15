@@ -16,6 +16,7 @@ class ExampleGenerator(nn.Module):
     Most in-line comments are direct quotes from the tutorial. The code is
     copied and slightly adapted.
     """
+
     def __init__(self, latent_dim, output_activation=None):
         """Instantiates the generator model.
 
