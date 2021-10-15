@@ -204,8 +204,12 @@ def standard_trainer(
         # print the quantities from tracker
         if verbose and tracker is not None:
             print("=======================================")
+            t = []
             for key in tracker.log.keys():
                 print(key, tracker.log[key][-1], flush=True)
+                t.append([key, tracker.log[key][-1]])
+            correlation = t[0][1]
+            posisson_loss = t[1][1]
 
         # executes callback function if passed in keyword args
         if cb is not None:
@@ -222,15 +226,24 @@ def standard_trainer(
             loss = full_objective(
                 model, dataloaders["train"], data_key, *data, detach_core=detach_core
             )
-            current_lr = optimizer.param_groups["lr"]
+
+            for param_group in optimizer.param_groups:
+                current_lr = float(param_group["lr"])
 
             # log wandb
-            wandb.log({"loss": loss, "learning_rate": current_lr})
+            wandb.log(
+                {
+                    "poisson_loss": posisson_loss,
+                    "correlation": correlation,
+                    "learning_rate": current_lr,
+                }
+            )
 
             loss.backward()
             if (batch_no + 1) % optim_step_count == 0:
                 optimizer.step()
                 optimizer.zero_grad()
+    wandb.finish()
 
     ##### Model evaluation ####################################################################################################
     model.eval()

@@ -58,9 +58,9 @@ def get_dataloaders(cuda=False):
         cuda (bool, optional): If True, use GPU. Defaults to False.
 
     Returns:
-        OrderedDict: [dictionary of dictionaries where the first level keys are
-            'train', 'validation', and 'test', and second level keys are
-            data_keys.
+        tuple: Tuple of OrderedDict: [dictionary of dictionaries where the first
+            level keys are 'train', 'validation', and 'test', and second level
+            keys are data_keys and dict of dataset config.
     """
     # Checking if data is downloaded:
     lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
@@ -76,7 +76,7 @@ def get_dataloaders(cuda=False):
         "exclude": "images",
     }
     dataloaders = static_loaders(**dataset_config)
-    return dataloaders
+    return dataloaders, dataset_config
 
 
 def get_complete_dataset(dataloaders, key="train", dataset_name="20457-5-9-0"):
