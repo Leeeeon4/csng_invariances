@@ -83,6 +83,30 @@ def standard_trainer(
 
     """
 
+    ################## Weights and Biases #####################################
+    wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
+
+    # setup wandb config
+    config = wandb.config
+    config.avg_loss = avg_loss
+    config.scale_loss = scale_loss
+    config.loss_function = loss_function
+    config.stop_function = stop_function
+    config.loss_accum_batch_n = loss_accum_batch_n
+    config.device = device
+    config.interval = interval
+    config.patience = patience
+    config.epoch = epoch
+    config.lr_init = lr_init
+    config.max_iter = max_iter
+    config.maximize = maximize
+    config.tolerance = tolerance
+    config.restore_best = restore_best
+    config.lr_decay_steps = lr_decay_steps
+    config.lr_decay_factor = lr_decay_factor
+    config.min_lr = min_lr
+    config.cb = cb
+
     def full_objective(model, dataloader, data_key, *args, detach_core):
 
         loss_scale = (
@@ -103,9 +127,6 @@ def standard_trainer(
         )
 
     ##### Model training ####################################################################################################
-
-    wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
-
     model.to(device)
     set_random_seed(seed)
     model.train()
@@ -201,6 +222,11 @@ def standard_trainer(
             loss = full_objective(
                 model, dataloaders["train"], data_key, *data, detach_core=detach_core
             )
+            current_lr = optimizer.param_groups["lr"]
+
+            # log wandb
+            wandb.log({"loss": loss, "learning_rate": current_lr})
+
             loss.backward()
             if (batch_no + 1) % optim_step_count == 0:
                 optimizer.step()

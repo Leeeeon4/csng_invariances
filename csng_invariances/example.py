@@ -1,10 +1,15 @@
-"""Module with an example gan that runs quickly to test certain things, e.g. wandb."""
+"""Module with an example gan.
+
+THe model runs quickly to test certain things, e.g. wandb. The example is based
+on: https://towardsdatascience.com/pytorch-and-gans-a-micro-tutorial-804855817a6b
+"""
 
 import torch
 from models.discriminator import ExampleDiscriminator as Discriminator
 from models.generator import ExampleGenerator as Generator
 from models.gan import ExampleGAN as VanillaGAN
 import wandb
+from rich import print
 
 
 def main():
@@ -14,7 +19,7 @@ def main():
     wandb.init(project="_TestProject", entity="csng-cuni")
 
     # initialize model
-    epochs = 600
+    epochs = 150
     batches = 10
     generator = Generator(1)
     discriminator = Discriminator(1, [64, 32, 1])
@@ -49,9 +54,9 @@ def main():
         loss_d_fake.append(loss_d_fake_running / batches)
         wandb.log(
             {
-                "loss_gen": loss_g,
-                "loss_discr_real": loss_d_real,
-                "loss_discr_fake": loss_d_fake,
+                "loss_gen": loss_g[-1],
+                "loss_discr_real": loss_d_real[-1],
+                "loss_discr_fake": loss_d_fake[-1],
             }
         )
         print(
