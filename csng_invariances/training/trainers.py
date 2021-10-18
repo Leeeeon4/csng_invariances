@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 import wandb
+from rich import print
 
 from neuralpredictors import measures as mlmeasures
 from neuralpredictors.training import (
@@ -49,7 +50,7 @@ def standard_trainer(
     track_training=False,
     return_test_score=False,
     detach_core=False,
-    **kwargs
+    **kwargs,
 ):
     """Trainer as provided by Lurz et al. 2021.
 
@@ -90,7 +91,7 @@ def standard_trainer(
             rate after no improvement. Defaults to 3.
         lr_decay_factor (float, optional): factor to decay the learning rate
             with. Defaults to 0.3.
-        min_lr (float, optional): minimum learning rate. Defaults to 0.005.
+        min_lr (float, optional): minimum learning rate. Defaults to 0.0001.
         cb (bool, optional): whether to execute callback function. Defaults to
             None.
         track_training (bool, optional): whether to track and print out the
