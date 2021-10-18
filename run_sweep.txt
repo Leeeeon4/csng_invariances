@@ -1,5 +1,0 @@
-run agent: 
-wandb agent csng-cuni/invariances_encoding_LurzModel/6ez200uc
-
-update config:
-wandb sweep --update csng-cuni/invariances_encoding_LurzModel/6ez200uc sweep.yaml
