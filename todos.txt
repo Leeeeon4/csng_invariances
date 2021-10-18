@@ -1,3 +1,4 @@
 TODO reread Sinzlab papers
 TODO Linear filter analysis
 TODO train readout
+TODO figure out if import csng_invariances. ... or ...
