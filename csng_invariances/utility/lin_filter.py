@@ -1,5 +1,5 @@
 """Provide different linear filters to estimate a linear receptive field."""
-
+# TODO multiprocessing
 import numpy as np
 from numpy.linalg import pinv
 import pandas as pd
@@ -25,6 +25,7 @@ def _reshape_filter_2d(fil):
     Returns:
         np.array: 2D representation of array
     """
+    # TODO make class method.
     assert len(fil.shape) == 4, f"Filter was expected to be 4D but is {fil.shape}"
     neuron_count = fil.shape[0]
     dim1 = fil.shape[2]
