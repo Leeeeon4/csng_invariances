@@ -1,7 +1,6 @@
 """Module provding CNN encoding functionality."""
 
-from numpy import string_
-from torch._C import BoolType
+import wandb
 from datasets.lurz2020 import get_dataloaders, static_loaders
 from models.discriminator import get_core_trained_model
 from training.trainers import standard_trainer as trainer
@@ -82,47 +81,12 @@ def train_encoding(
     return model, dataloaders, device, dataset_config
 
 
-def evaluate_encoding(model, dataloaders, device, dataset_config):
-    """Evalutes the trained encoding model.
-
-    Args:
-        model (Encoder): torch.nn.Module inherited class Encoder.
-        dataloaders (OrderedDict): dict of train, validation and test
-            DataLoader objects
-        device (str): String of device to use for computation
-        dataset_config (dict): dict of dataset options
-    """
-    # Performane
-    from utility.measures import get_correlations, get_fraction_oracles
-
-    train_correlation = get_correlations(
-        model, dataloaders["train"], device=device, as_dict=False, per_neuron=False
-    )
-    validation_correlation = get_correlations(
-        model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False
-    )
-    test_correlation = get_correlations(
-        model, dataloaders["test"], device=device, as_dict=False, per_neuron=False
-    )
-
-    # Fraction Oracle can only be computed on the test set. It requires the dataloader to give out batches of repeats of images.
-    # This is achieved by building a dataloader with the argument "return_test_sampler=True"
-    oracle_dataloader = static_loaders(
-        **dataset_config, return_test_sampler=True, tier="test"
-    )
-    fraction_oracle = get_fraction_oracles(
-        model=model, dataloaders=oracle_dataloader, device=device
-    )[0]
-
-    print("-----------------------------------------")
-    print("Correlation (train set):      {0:.3f}".format(train_correlation))
-    print("Correlation (validation set): {0:.3f}".format(validation_correlation))
-    print("Correlation (test set):       {0:.3f}".format(test_correlation))
-    print("-----------------------------------------")
-    print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
-
-
 def sweep_parser():
+    """Handle argparsing
+
+    Returns:
+        namespace: Namespace of parsed arguments.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--seed", type=int, default=1, help="Seed for randomness. Defaults to 1."
@@ -260,23 +224,63 @@ def sweep_parser():
         help=("If True, the core will not be fine-tuned. Defaults to True."),
     )
     args = parser.parse_args()
-    print(args)
+    return args
+
+
+def encode():
+    """Wrap training.
+
+    Returns:
+        tuple: tuple of model, dataloaders, device, dataset_config
+    """
+    wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
+    config = wandb.config
+    args = sweep_parser()
+    config.update(args)
+    model, dataloaders, device, dataset_config = train_encoding(vars(args))
+    return model, dataloaders, device, dataset_config
+
+
+def evaluate_encoding(model, dataloaders, device, dataset_config):
+    """Evalutes the trained encoding model.
+
+    Args:
+        model (Encoder): torch.nn.Module inherited class Encoder.
+        dataloaders (OrderedDict): dict of train, validation and test
+            DataLoader objects
+        device (str): String of device to use for computation
+        dataset_config (dict): dict of dataset options
+    """
+    # Performane
+    from utility.measures import get_correlations, get_fraction_oracles
+
+    train_correlation = get_correlations(
+        model, dataloaders["train"], device=device, as_dict=False, per_neuron=False
+    )
+    validation_correlation = get_correlations(
+        model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False
+    )
+    test_correlation = get_correlations(
+        model, dataloaders["test"], device=device, as_dict=False, per_neuron=False
+    )
+
+    # Fraction Oracle can only be computed on the test set. It requires the dataloader to give out batches of repeats of images.
+    # This is achieved by building a dataloader with the argument "return_test_sampler=True"
+    oracle_dataloader = static_loaders(
+        **dataset_config, return_test_sampler=True, tier="test"
+    )
+    fraction_oracle = get_fraction_oracles(
+        model=model, dataloaders=oracle_dataloader, device=device
+    )[0]
+
+    print("-----------------------------------------")
+    print("Correlation (train set):      {0:.3f}".format(train_correlation))
+    print("Correlation (validation set): {0:.3f}".format(validation_correlation))
+    print("Correlation (test set):       {0:.3f}".format(test_correlation))
+    print("-----------------------------------------")
+    print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
 
 
 if __name__ == "__main__":
-    sweep_parser()
-    # train_encoding(
-    #     args.detach_core,
-    #     args.avg_loss,
-    #     args.scale_loss,
-    #     args.loss_accum_batch_n,
-    #     args.interval,
-    #     args.patience,
-    #     args.lr_init,
-    #     args.max_iter,
-    #     args.maximize,
-    #     args.tolerance,
-    #     args.lr_decay_steps,
-    #     args.lr_decay_factor,
-    #     args.min_lr,
-    # )
+    model, dataloaders, device, dataset_config = encode()
+    evaluate_encoding(model, dataloaders, device, dataset_config)
