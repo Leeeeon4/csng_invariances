@@ -51,7 +51,7 @@ def standard_trainer(
     detach_core=False,
     **kwargs
 ):
-    """
+    """Trainer as provided by Lurz et al. 2021.
 
     Args:
         model (Encoder): model to be trained
@@ -100,30 +100,6 @@ def standard_trainer(
     Returns:
 
     """
-
-    ################## Weights and Biases #####################################
-    wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
-
-    # setup wandb config
-    config = wandb.config
-    config.avg_loss = avg_loss
-    config.scale_loss = scale_loss
-    config.loss_function = loss_function
-    config.stop_function = stop_function
-    config.loss_accum_batch_n = loss_accum_batch_n
-    config.device = device
-    config.interval = interval
-    config.patience = patience
-    config.epoch = epoch
-    config.lr_init = lr_init
-    config.max_iter = max_iter
-    config.maximize = maximize
-    config.tolerance = tolerance
-    config.restore_best = restore_best
-    config.lr_decay_steps = lr_decay_steps
-    config.lr_decay_factor = lr_decay_factor
-    config.min_lr = min_lr
-    config.cb = cb
 
     def full_objective(model, dataloader, data_key, *args, detach_core):
 

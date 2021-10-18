@@ -9,78 +9,6 @@ import argparse
 from rich import print
 
 
-def train_encoding(
-    detach_core=True,
-    avg_loss=False,
-    scale_loss=False,
-    loss_accum_batch_n=None,
-    interval=1,
-    patience=5,
-    lr_init=0.005,
-    max_iter=200,
-    maximize=True,
-    tolerance=1e-6,
-    lr_decay_steps=3,
-    lr_decay_factor=0.3,
-    min_lr=0.0001,
-):
-    """Train the encoding model.
-
-    Returns:
-        tuple: tuple of model, dataloaders, device, dataset_config
-    """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Running the model on {device}")
-    if device == "cpu":
-        cuda = False
-    else:
-        cuda = True
-    # Load data and model
-    dataloaders, dataset_config = get_dataloaders(cuda)
-    model = get_core_trained_model(dataloaders)
-
-    # If you want to allow fine tuning of the core, set detach_core to False
-    if detach_core:
-        print("Core is fixed and will not be fine-tuned")
-    else:
-        print("Core will be fine-tuned")
-
-    # trainer_config = {"track_training": True, "detach_core": detach_core}
-
-    trainer_config = {
-        "avg_loss": avg_loss,
-        "scale_loss": scale_loss,
-        "loss_function": "PoissonLoss",
-        "stop_function": "get_correlations",
-        "loss_accum_batch_n": loss_accum_batch_n,
-        "device": device,
-        "verbose": True,
-        "interval": interval,
-        "patience": patience,
-        "epoch": 0,
-        "lr_init": lr_init,
-        "max_iter": max_iter,
-        "maximize": maximize,
-        "tolerance": tolerance,
-        "restore_best": True,
-        "lr_decay_steps": lr_decay_steps,
-        "lr_decay_factor": lr_decay_factor,
-        "min_lr": min_lr,
-        "cb": None,
-        "track_training": True,
-        "return_test_score": False,
-        "detach_core": detach_core,
-    }
-    print(f"Running current training config:\n{trainer_config}")
-
-    # Run trainer
-    score, output, model_state = trainer(
-        model=model, dataloaders=dataloaders, seed=1, **trainer_config
-    )
-
-    return model, dataloaders, device, dataset_config
-
-
 def sweep_parser():
     """Handle argparsing
 
@@ -117,8 +45,7 @@ def sweep_parser():
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
-        help="Device to run training on. Defaults to cuda.",
+        help="Device to run training on. Defaults to cuda if possible.",
     )
     parser.add_argument(
         "--verbose",
@@ -200,7 +127,7 @@ def sweep_parser():
     parser.add_argument(
         "--min_lr",
         type=float,
-        default=0.005,
+        default=0.0001,
         help=("minimum learning rate. Defaults to 0.005."),
     )
     parser.add_argument(
@@ -227,6 +154,45 @@ def sweep_parser():
     return args
 
 
+def train_encoding(args):
+    """Train the encoding model.
+
+    Args:
+        args (namespace): Namespace of parsed arguments.
+
+    Returns:
+        tuple: tuple of model, dataloaders, device, dataset_config
+    """
+
+    # Handle device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    cuda = False if device == "cpu" else True
+    print(f"Running the model on {device}")
+
+    # Load data and model
+    dataloaders, dataset_config = get_dataloaders(cuda)
+    model = get_core_trained_model(dataloaders)
+
+    # If you want to allow fine tuning of the core, set detach_core to False
+    if vars(args)["detach_core"]:
+        print("Core is fixed and will not be fine-tuned")
+    else:
+        print("Core will be fine-tuned")
+
+    # Display traininer config
+    trainer_config = vars(args)
+    trainer_config["device"] = device
+    print("Running current training config:")
+    print(f"{trainer_config}")
+
+    # Run trainer
+    score, output, model_state = trainer(
+        model=model, dataloaders=dataloaders, **trainer_config
+    )
+
+    return model, dataloaders, device, dataset_config
+
+
 def encode():
     """Wrap training.
 
@@ -237,7 +203,7 @@ def encode():
     config = wandb.config
     args = sweep_parser()
     config.update(args)
-    model, dataloaders, device, dataset_config = train_encoding(vars(args))
+    model, dataloaders, device, dataset_config = train_encoding(args)
     return model, dataloaders, device, dataset_config
 
 
