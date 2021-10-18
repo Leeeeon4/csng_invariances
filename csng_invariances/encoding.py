@@ -1,5 +1,6 @@
 """Module provding CNN encoding functionality."""
 
+from numpy import string_
 from torch._C import BoolType
 from datasets.lurz2020 import get_dataloaders, static_loaders
 from models.discriminator import get_core_trained_model
@@ -121,34 +122,161 @@ def evaluate_encoding(model, dataloaders, device, dataset_config):
     print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
 
 
-if __name__ == "__main__":
+def sweep_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--avg_loss", type=bool)
-    parser.add_argument("--scale_loss", type=bool)
-    parser.add_argument("--detach_core", type=bool)
-    parser.add_argument("--loss_accum_batch_n", type=int)
-    parser.add_argument("--interval", type=int)
-    parser.add_argument("--patience", type=int)
-    parser.add_argument("--lr_init", type=float)
-    parser.add_argument("--max_iter", type=int)
-    parser.add_argument("--maximize", type=bool)
-    parser.add_argument("--tolerance", type=float)
-    parser.add_argument("--lr_decay_steps", type=int)
-    parser.add_argument("--lr_decay_factor", type=float)
-    parser.add_argument("--min_lr", type=float)
-    args = parser.parse_args()
-    train_encoding(
-        # args.detach_core,
-        # args.avg_loss,
-        # args.scale_loss,
-        # args.loss_accum_batch_n,
-        # args.interval,
-        # args.patience,
-        # args.lr_init,
-        # args.max_iter,
-        # args.maximize,
-        # args.tolerance,
-        # args.lr_decay_steps,
-        # args.lr_decay_factor,
-        # args.min_lr,
+    parser.add_argument(
+        "--seed", type=int, default=1, help="Seed for randomness. Defaults to 1."
     )
+    parser.add_argument(
+        "--avg_loss",
+        type=bool,
+        default=False,
+        help=(
+            "If True, the loss is averaged/summed over one batch. Defaults to" "False."
+        ),
+    )
+    parser.add_argument(
+        "--scale_loss",
+        type=bool,
+        default=False,
+        help=(
+            "If True, the loss is scaled according to the dataset size. "
+            "Defaults to False."
+        ),
+    )
+    parser.add_argument(
+        "--loss_accum_batch_n",
+        type=int,
+        default=None,
+        help="Number of batches to accumulate the loss over. Defaults to None.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device to run training on. Defaults to cuda.",
+    )
+    parser.add_argument(
+        "--verbose",
+        type=bool,
+        default=True,
+        help=(
+            "If True, prints out a message for each optimzer step. Defaults " "to True."
+        ),
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=1,
+        help=(
+            "Interval at which objective is evaluated to consider early "
+            "stopping. Defaults to 1."
+        ),
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=5,
+        help=(
+            "Number of times the objective is allowed to not become better "
+            "before the iterator terminates. Defaults to 5."
+        ),
+    )
+    parser.add_argument(
+        "--epoch", type=int, default=0, help=("Starting epoch. Defaults to 0.")
+    )
+    parser.add_argument(
+        "--lr_init",
+        type=float,
+        default=0.005,
+        help=("Initial learning rate. Defaults to 0.005."),
+    )
+    parser.add_argument(
+        "--max_iter",
+        type=int,
+        default=200,
+        help=("Maximum number of training iterations. Defaults to 200."),
+    )
+    parser.add_argument(
+        "--maximize",
+        type=bool,
+        default=True,
+        help=("If True, maximize the objective function. Defaults to True."),
+    )
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=1e-6,
+        help=("Tolerance for early stopping. Defaults to 1e-6."),
+    )
+    parser.add_argument(
+        "--restore_best",
+        type=bool,
+        default=True,
+        help=(
+            "Whether to restore the model to the best state after early "
+            "stopping. Defaults to True."
+        ),
+    )
+    parser.add_argument(
+        "--lr_decay_steps",
+        type=int,
+        default=3,
+        help=(
+            "How many times to decay the learning rate after no improvement. "
+            "Defaults to 3."
+        ),
+    )
+    parser.add_argument(
+        "--lr_decay_factor",
+        type=float,
+        default=0.3,
+        help=("Factor to decay the learning rate with. Defaults to 0.3."),
+    )
+    parser.add_argument(
+        "--min_lr",
+        type=float,
+        default=0.005,
+        help=("minimum learning rate. Defaults to 0.005."),
+    )
+    parser.add_argument(
+        "--cb",
+        type=bool,
+        default=None,
+        help=("whether to execute callback function. Defaults to None."),
+    )
+    parser.add_argument(
+        "--track_training",
+        type=bool,
+        default=True,
+        help=(
+            "whether to track and print out the training progress. Defaults to " "True."
+        ),
+    )
+    parser.add_argument(
+        "--detach_core",
+        type=bool,
+        default=True,
+        help=("If True, the core will not be fine-tuned. Defaults to True."),
+    )
+    args = parser.parse_args()
+    print(args)
+
+
+if __name__ == "__main__":
+    sweep_parser()
+    # train_encoding(
+    #     args.detach_core,
+    #     args.avg_loss,
+    #     args.scale_loss,
+    #     args.loss_accum_batch_n,
+    #     args.interval,
+    #     args.patience,
+    #     args.lr_init,
+    #     args.max_iter,
+    #     args.maximize,
+    #     args.tolerance,
+    #     args.lr_decay_steps,
+    #     args.lr_decay_factor,
+    #     args.min_lr,
+    # )
