@@ -54,29 +54,47 @@ def standard_trainer(
     """
 
     Args:
-        model: model to be trained
-        dataloaders: dataloaders containing the data to train the model with
-        seed: random seed
-        avg_loss: whether to average (or sum) the loss over a batch
-        scale_loss: whether to scale the loss according to the size of the dataset
-        loss_function: loss function to use
-        stop_function: the function (metric) that is used to determine the end of the training in early stopping
-        loss_accum_batch_n: number of batches to accumulate the loss over
-        device: device to run the training on
-        verbose: whether to print out a message for each optimizer step
-        interval: interval at which objective is evaluated to consider early stopping
-        patience: number of times the objective is allowed to not become better before the iterator terminates
-        epoch: starting epoch
-        lr_init: initial learning rate
-        max_iter: maximum number of training iterations
-        maximize: whether to maximize or minimize the objective function
-        tolerance: tolerance for early stopping
-        restore_best: whether to restore the model to the best state after early stopping
-        lr_decay_steps: how many times to decay the learning rate after no improvement
-        lr_decay_factor: factor to decay the learning rate with
-        min_lr: minimum learning rate
-        cb: whether to execute callback function
-        track_training: whether to track and print out the training progress
+        model (Encoder): model to be trained
+        dataloaders (OrderedDict): dataloaders containing the data to train the
+            model with
+        seed (int, optional): random seed. Defaults to 1.
+        avg_loss (bool, optional): whether to average (or sum) the loss over a
+            batch. Defaults to False.
+        scale_loss (bool, optional): whether to scale the loss according to the
+            size of the dataset. Defaults to False.
+        loss_function (string, optional): loss function to use. Defaults to
+            PossionLoss.
+        stop_function (string, optional): the function (metric) that is used to
+            determine the end of the training in early stopping. Defaults to
+            get_correlation.
+        loss_accum_batch_n (int, optional): number of batches to accumulate the
+            loss over. Defaults to None.
+        device (str, optional): device to run the training on. Defaults to cuda.
+        verbose (bool, optional): whether to print out a message for each
+            optimizer step. Defaults to True.
+        interval (int, optional): interval at which objective is evaluated to
+            consider early stopping. Defaults to 1.
+        patience (int, optional): number of times the objective is allowed to
+            not become better before the iterator terminates. Defaults to 5.
+        epoch (int, optional): starting epoch. Defaults to 0.
+        lr_init (float, optional): initial learning rate. Defaults to 0.005.
+        max_iter (int, optional): maximum number of training iterations.
+            Defaults to 200.
+        maximize (bool, optional): whether to maximize or minimize the
+            objective function. Defaults to True.
+        tolerance (float, optional): tolerance for early stopping. Defaults to
+            1e-6.
+        restore_best (bool, optional): whether to restore the model to the best
+            state after early stopping. Defaults to True.
+        lr_decay_step (int, optionals: how many times to decay the learning
+            rate after no improvement. Defaults to 3.
+        lr_decay_factor (float, optional): factor to decay the learning rate
+            with. Defaults to 0.3.
+        min_lr (float, optional): minimum learning rate. Defaults to 0.005.
+        cb (bool, optional): whether to execute callback function. Defaults to
+            None.
+        track_training (bool, optional): whether to track and print out the
+            training progress. Defaults to True.
         **kwargs:
 
     Returns:
