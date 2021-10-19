@@ -217,6 +217,7 @@ def encode():
         print(f"Running the model on {device}")
 
         # Load data and model
+        # TODO Include batchsize in wandb for sweeps
         dataloaders, dataset_config = get_dataloaders(cuda)
         model = get_core_trained_model(dataloaders)
 

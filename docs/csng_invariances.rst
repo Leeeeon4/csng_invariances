@@ -36,10 +36,34 @@ csng\_invariances.csng\_invariances module
    :undoc-members:
    :show-inheritance:
 
+csng\_invariances.encoding module
+---------------------------------
+
+.. automodule:: csng_invariances.encoding
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.example module
+--------------------------------
+
+.. automodule:: csng_invariances.example
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 csng\_invariances.linear\_receptive\_field module
 -------------------------------------------------
 
 .. automodule:: csng_invariances.linear_receptive_field
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.test module
+-----------------------------
+
+.. automodule:: csng_invariances.test
    :members:
    :undoc-members:
    :show-inheritance:
