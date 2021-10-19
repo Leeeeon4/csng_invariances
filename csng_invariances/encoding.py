@@ -1,12 +1,14 @@
 """Module provding CNN encoding functionality."""
 
 import wandb
-from datasets.lurz2020 import get_dataloaders, static_loaders
+from datasets.lurz2020 import download_lurz2020_data, static_loaders
 from models.discriminator import get_core_trained_model
 from training.trainers import standard_trainer as trainer
 import torch
 import argparse
 from rich import print
+from pathlib import Path
+from datetime import datetime
 
 
 def encode():
@@ -172,6 +174,12 @@ def encode():
             default=True,
             help=("If True, the core will not be fine-tuned. Defaults to True."),
         )
+        parser.add_argument(
+            "--batch_size",
+            type=int,
+            default=64,
+            help=("Size of batches. Defaults to 64."),
+        )
         args = parser.parse_args()
         return args
 
@@ -199,6 +207,7 @@ def encode():
         track_training=False,
         return_test_score=False,
         detach_core=False,
+        batch_size=64,
         **kwargs,
     ):
         """Train the encoding model.
@@ -218,7 +227,19 @@ def encode():
 
         # Load data and model
         # TODO Include batchsize in wandb for sweeps
-        dataloaders, dataset_config = get_dataloaders(cuda)
+        lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
+        if (lurz_dir / "README.md").is_file() is False:
+            download_lurz2020_data()
+        # Building Dataloaders
+        dataset_config = {
+            "paths": [str(lurz_dir / "static20457-5-9-preproc0")],
+            "batch_size": batch_size,
+            "seed": seed,
+            "cuda": cuda,
+            "normalize": True,
+            "exclude": "images",
+        }
+        dataloaders = static_loaders(**dataset_config)
         model = get_core_trained_model(dataloaders)
 
         # If you want to allow fine tuning of the core, set detach_core to False
@@ -290,4 +311,8 @@ def evaluate_encoding(model, dataloaders, device, dataset_config):
 
 if __name__ == "__main__":
     model, dataloaders, device, dataset_config = encode()
+    t = str(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+    model_path = Path.cwd() / "models" / t
+    model_path.mkdir(parents=True, exist_ok=True)
+    torch.save(model, model_path / "trained_model.pth")
     # evaluate_encoding(model, dataloaders, device, dataset_config)
