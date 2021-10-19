@@ -289,4 +289,5 @@ def evaluate_encoding(model, dataloaders, device, dataset_config):
 
 if __name__ == "__main__":
     model, dataloaders, device, dataset_config = encode()
+    # torch.save(model, "test.pth")
     # evaluate_encoding(model, dataloaders, device, dataset_config)
