@@ -222,8 +222,8 @@ def encode():
         del trainer_config["kwargs"]
         # Handle device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        cuda = False if device == "cpu" else True
-        print(f"Running the model on {device}")
+        cuda = False if str(device) == "cpu" else True
+        print(f"Running the model on {device} with cuda: {cuda}")
 
         # Load data and model
         # TODO Include batchsize in wandb for sweeps
