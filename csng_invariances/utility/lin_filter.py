@@ -481,7 +481,7 @@ class Hyperparametersearch:
         self.results = np.hstack(
             (self.neurons, self.hyperparameters, self.single_neuron_correlations)
         )
-        self.avg_correlation = self.df_corrs.max().mean()
+        self.avg_correlation = self.df_corrs.max(axis=1).mean()
         if self.report:
             np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
             with open(self.report_dir / "average_correlation.txt", "w") as f:
