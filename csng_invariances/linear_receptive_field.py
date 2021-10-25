@@ -7,6 +7,7 @@ import datasets.antolik2016 as al
 import datasets.lurz2020 as lu
 import utility.lin_filter as lin_fil
 from utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
+import argparse
 
 
 def get_lurz_dataset():
@@ -141,5 +142,32 @@ def individually_regularized_linear_receptive_field(
     ValFilter.evaluate(fil=fil, report_dir=Hyperparametersearch.report_dir)
 
 
-if __name__ == "__main__":
+def linear_receptive_field_argparse(parser):
+    parser.add_argument(
+        "--report_path",
+        type=str,
+        help="Path to the report to be evaluated.",
+        default="/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-14_18:13:10/hyperparametersearch_report.npy",
+    )
+    parser.add_argument(
+        "--filter_path",
+        type=str,
+        help="Path to the filter to be evaluated.",
+        default="/home/leon/csng_invariances/models/linear_filter/2021-10-14_18:13:10/evaluated_filter.npy",
+    )
+    parser.add_argument(
+        "--count", type=int, help="Number of filters to plot.", default=5
+    )
+    args = parser.parse_args()
+
+
+def evaluate_reports(report_path, **kwargs):
     pass
+
+
+def plot_best(filter_path, count, **kwargs):
+    pass
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
