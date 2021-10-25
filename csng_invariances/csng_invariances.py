@@ -128,7 +128,7 @@ if __name__ == "__main__":
     3. Compute score
     4. Compute MEI
     5. Compute ROI
-    6. Train generator n(0,1)
+    6. Train generator n(0,1), generator would need to genereate coordinates for example images as well?
     7. Generate Samples u(-2,2)
     8. Cluster 'most representative/most different' samples
     9. Analyze important samples

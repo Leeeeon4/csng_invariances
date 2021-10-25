@@ -218,7 +218,7 @@ def encode():
         Returns:
             tuple: tuple of model, dataloaders, device, dataset_config
         """
-        trainer_config = locals()
+        trainer_config = dict(locals())
         del trainer_config["kwargs"]
         # Handle device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -226,7 +226,6 @@ def encode():
         print(f"Running the model on {device} with cuda: {cuda}")
 
         # Load data and model
-        # TODO Include batchsize in wandb for sweeps
         lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
         if (lurz_dir / "README.md").is_file() is False:
             download_lurz2020_data()
@@ -315,4 +314,4 @@ if __name__ == "__main__":
     model_path = Path.cwd() / "models" / t
     model_path.mkdir(parents=True, exist_ok=True)
     torch.save(model, model_path / "trained_model.pth")
-    # evaluate_encoding(model, dataloaders, device, dataset_config)
+    evaluate_encoding(model, dataloaders, device, dataset_config)

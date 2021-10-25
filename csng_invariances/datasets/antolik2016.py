@@ -44,7 +44,7 @@ def get_dataloaders():
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-
+    # TODO redo, so that dataloaders is as expected for Lurz model
     dataloaders = {
         "train": {
             "region1": Antolik2016Dataset("region1", "training"),

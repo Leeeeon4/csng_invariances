@@ -1,4 +1,14 @@
-TODO reread Sinzlab papers
+# Must be done
+TODO train readout Antolikdata (either learn gaussian or use other readout)
 TODO Linear filter analysis
-TODO train readout
+TODO train readout Lurzdata
+TODO try core spatialxfeaturelinear 
+TODO reread Sinzlab papers
+TODO strategically: reimplement model architecture and trainer, just on images and responses, so that antolik and lurz can be compared or try to use antolik on trained lurz model
+
+# Should be done
+TODO Sainity check 
+
+# Would be nice
 TODO figure out if import csng_invariances. ... or ...
+TODO refactor dataset
