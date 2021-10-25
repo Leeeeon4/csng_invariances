@@ -143,6 +143,14 @@ def individually_regularized_linear_receptive_field(
 
 
 def linear_receptive_field_argparse(parser):
+    """Handle evaluation argparsing.
+
+    Args:
+        parser (ArgumentParser): ArgumentParser for function call.
+
+    Returns:
+        dict: dictionary of kwargs and values.
+    """
     parser.add_argument(
         "--report_path",
         type=str,
@@ -158,7 +166,8 @@ def linear_receptive_field_argparse(parser):
     parser.add_argument(
         "--count", type=int, help="Number of filters to plot.", default=5
     )
-    args = parser.parse_args()
+    kwargs = parser.parse_args()
+    return vars(kwargs)
 
 
 def evaluate_reports(report_path, **kwargs):
@@ -171,3 +180,5 @@ def plot_best(filter_path, count, **kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    kwargs = linear_receptive_field_argparse()
+    evaluate_reports(**vars(kwargs))
