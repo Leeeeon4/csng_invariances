@@ -9,6 +9,8 @@ from rich import print
 from rich.progress import track
 from pathlib import Path
 
+import torch
+
 
 figure_sizes = {
     "full": (8, 5.6),
@@ -228,6 +230,8 @@ class Filter:
     def _fil_4d(self):
         """Reshape filter dataset to 4D representation."""
         if len(self.fil.shape) == 2:
+            if torch.is_tensor(self.fil):
+                self.fil = self.fil.numpy()
             self.fil = np.moveaxis(self.fil, [0, 1], [1, 0])
             self.fil = self.fil.reshape(
                 self.neuron_count,
@@ -279,13 +283,16 @@ class Filter:
         fil = np.matmul(
             pinv(
                 np.matmul(self.images.T, self.images)
-                + np.dot(reg_factor, np.identity(self.dim1 * self.dim2))
+                + reg_factor * np.identity(self.dim1 * self.dim2)
             ),
             np.matmul(self.images.T, responses),
         )
         return fil
 
     def _laplace_regularized_filter(self, responses, reg_factor):
+        # TODO There is an error in the math for the filter computation. It works
+        # correctly for square images. However, for non square images only a
+        # subset of the image is correctly regularized.
         """Compute laplace regularized spike-triggered average
 
         Args:
@@ -389,9 +396,7 @@ class GlobalRegularizationFilter(Filter):
 
     Class of linear filters with global regularization factor applied."""
 
-    def __init__(
-        self, images, responses, reg_type="laplace regularized", reg_factor=10
-    ):
+    def __init__(self, images, responses, reg_type="ridge regularized", reg_factor=10):
         super().__init__(images, responses, reg_type, reg_factor)
 
     def train(self, reg_factor=None):
@@ -416,7 +421,7 @@ class IndividualRegularizationFilter(Filter):
     Class of linear filters with individual regularization factors applied."""
 
     def __init__(
-        self, images, responses, reg_type="laplace regularized", reg_factor=None
+        self, images, responses, reg_type="ridge regularized", reg_factor=None
     ):
         super().__init__(images, responses, reg_type, reg_factor)
         if reg_factor is None:
@@ -484,13 +489,10 @@ class Hyperparametersearch:
         self.avg_correlation = self.df_corrs.max(axis=1).mean()
         if self.report:
             np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
-            with open(self.report_dir / "average_correlation.txt", "w") as f:
-                f.write(str(self.avg_correlation))
             with open(self.report_dir / "readme.txt", "w") as f:
                 f.write(
                     (
-                        "average_correlation.txt contains the average correlation "
-                        "of the best hyperparameters. hyperparametersearch_report "
+                        "hyperparametersearch_report "
                         ".npy contains a 2D array, where column one represents the "
                         "the neurons, column two the regularization factor and "
                         "column three the single neuron correlation of the filter "
