@@ -648,14 +648,15 @@ class FilterReport:
                 sort,
             )
 
-    def plot(self):
+    def plot_individual(self):
+        """Plots and stores"""
         self.filter_data = np.load(self.filter_file)
         for i in range(self.counter):
             corr = self.df.Correlation.iloc[i]
             neuron = int(self.df.Neuron.iloc[i])
             fil = self.filter_data[neuron, 0, :, :]
             plt.imshow(fil)
-            plt.savefig(f"test_{i}.png")
+            plt.savefig(self.report_figure_path / f"Filter_{i}.png")
 
 
 if __name__ == "__main__":
