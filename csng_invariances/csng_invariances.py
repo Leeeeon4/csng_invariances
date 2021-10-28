@@ -15,15 +15,7 @@ def linear_receptive_field_experiments():
     For the Antolik dataset this is done for each of the three regions.
     """
     ########################## Regularization factors #########################
-<<<<<<< HEAD
-<<<<<<< HEAD
-    reg_factors = [1 * 10 ** x for x in np.linspace(-1, 5, 1)]
-=======
     reg_factors = [1 * 10 ** x for x in np.linspace(-5, 5, 50)]
->>>>>>> e69bf1503673fd173a6ae273fb835fc7625eea48
-=======
-    reg_factors = [1 * 10 ** x for x in np.linspace(-5, 5, 50)]
->>>>>>> e69bf1503673fd173a6ae273fb835fc7625eea48
 
     ################################## Lurz ###################################
 
@@ -67,57 +59,6 @@ def linear_receptive_field_experiments():
     # print("Lurz dataset concluded.")
     # print("================================================\n\n")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # ################################# Antolik #################################
-
-    # print("\n\n================================================")
-    # print("Begin Antolik dataset.")
-    # print("================================================\n\n")
-    # for region in ["region1", "region2", "region3"]:
-    #     ############################# Region ##################################
-    #     print("\n-----------------------------------------------")
-    #     print(f"Being {region}.")
-    #     print("-----------------------------------------------\n")
-
-    #     ################################# Data ################################
-    #     (
-    #         train_images,
-    #         train_responses,
-    #         val_images,
-    #         val_responses,
-    #     ) = get_antolik_dataset(region)
-
-    #     ######################## Global regularization ########################
-    #     print("Begin globally regularized linear receptive field estimate experiments.")
-    #     print("-----------------------------------------------\n")
-
-    #     # Conduct hyper parameter search
-    #     globally_regularized_linear_receptive_field(
-    #         reg_factors, train_images, train_responses, val_images, val_responses
-    #     )
-    #     print(
-    #         "Finished globally regularized linear receptive field estimate experiment."
-    #     )
-    #     print("-----------------------------------------------\n")
-
-    #     ###################### Individual regularization ######################
-    #     print(
-    #         "Begin indivially regularized linear receptive field estimate experiment."
-    #     )
-    #     print("-----------------------------------------------\n")
-
-    #     # Conduct hyperparametersearch
-    #     individually_regularized_linear_receptive_field(
-    #         reg_factors, train_images, train_responses, val_images, val_responses
-    #     )
-    #     print("\n-----------------------------------------------")
-    #     print(f"Conclude {region}.")
-
-    # print("\n\n================================================")
-=======
-=======
->>>>>>> e69bf1503673fd173a6ae273fb835fc7625eea48
     ################################# Antolik #################################
 
     print("\n\n================================================")
@@ -164,7 +105,6 @@ def linear_receptive_field_experiments():
         print(f"Conclude {region}.")
 
     print("\n\n================================================")
->>>>>>> e69bf1503673fd173a6ae273fb835fc7625eea48
     print("Antolik dataset concluded.\n\n")
     print("================================================\n\n")
 
