@@ -7,6 +7,7 @@ reports/**
 # Models
 models/**
 csng_invariances/models/external/**
+csng_invariances/models/linear_filter/**
 
 # VS Code workspaces
 *.code-workspace

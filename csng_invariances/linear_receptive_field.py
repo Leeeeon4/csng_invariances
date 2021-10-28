@@ -73,10 +73,10 @@ def globally_regularized_linear_receptive_field(
 
     # Build filters for estimation of linear receptive field
     TrainFilter = lin_fil.GlobalRegularizationFilter(
-        norm_0_1(train_images), norm_0_1(train_responses)
+        norm_0_1(train_images), norm_0_1(train_responses), reg_type="ridge regularized"
     )
     ValFilter = lin_fil.GlobalRegularizationFilter(
-        norm_0_1(val_images), norm_0_1(val_responses)
+        norm_0_1(val_images), norm_0_1(val_responses), reg_type="ridge regularized"
     )
 
     # hyperparametersearch
@@ -120,10 +120,10 @@ def individually_regularized_linear_receptive_field(
     """
     # Build filters for estimation of linear receptive field
     TrainFilter = lin_fil.IndividualRegularizationFilter(
-        norm_0_1(train_images), norm_0_1(train_responses)
+        norm_0_1(train_images), norm_0_1(train_responses), reg_type="ridge regularized"
     )
     ValFilter = lin_fil.IndividualRegularizationFilter(
-        norm_0_1(val_images), norm_0_1(val_responses)
+        norm_0_1(val_images), norm_0_1(val_responses), reg_type="ridge regularized"
     )
 
     # hyperparametersearch
@@ -179,6 +179,7 @@ def plot_best(filter_path, count, **kwargs):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    kwargs = linear_receptive_field_argparse()
-    evaluate_reports(**vars(kwargs))
+    # parser = argparse.ArgumentParser()
+    # kwargs = linear_receptive_field_argparse()
+    # evaluate_reports(**vars(kwargs))
+    pass
