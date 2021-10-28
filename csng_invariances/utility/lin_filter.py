@@ -227,6 +227,7 @@ class Filter:
 
     def _fil_4d(self):
         """Reshape filter dataset to 4D representation."""
+        self.fil = self.fil.numpy()
         if len(self.fil.shape) == 2:
             self.fil = np.moveaxis(self.fil, [0, 1], [1, 0])
             self.fil = self.fil.reshape(
@@ -325,14 +326,24 @@ class Filter:
 
         self._image_2d()
         laplace = __laplaceBias(self.dim1, self.dim2)
-        ti = np.vstack((self.images, np.dot(float(reg_factor), laplace)))
-        ts = np.vstack(
-            (
-                responses,
-                np.zeros((self.images.shape[1], responses.shape[1])),
-            )
-        )
-        fil = np.asarray(pinv(ti.T * ti) * ti.T * ts)
+        print(self.images.shape)
+        print(laplace.shape)
+        X = self.images
+        y = self.responses
+        # ti = np.vstack((self.images, np.dot(float(reg_factor), laplace)))
+        # ts = np.vstack(
+        #     (
+        #         responses,
+        #         np.zeros((self.images.shape[1], responses.shape[1])),
+        #     )
+        # )
+        # fil = np.asarray(pinv(ti.T * ti) * ti.T * ts)
+        # (X.T*X+L*M)^-1*X.T*y
+        reg_matrix = np.dot(reg_factor, laplace)
+        inv = np.matmul(X.T, X) + reg_matrix
+        inv = np.linalg.pinv(inv)
+        A = np.matmul(inv, X.T)
+        fil = np.matmul(A, y)
         return fil
 
     def _handle_train_parsing(self, reg_factor):
@@ -405,8 +416,11 @@ class GlobalRegularizationFilter(Filter):
         """
         reg_factor = self._handle_train_parsing(reg_factor)
         self._image_2d()
+        self._shape_printer()
         self.fil = self._compute_filter(responses=self.responses, reg_factor=reg_factor)
+        self._shape_printer()
         self._fil_4d()
+        self._shape_printer()
         return self.fil
 
 
@@ -532,6 +546,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
             enumerate(self.reg_factors), total=len(self.reg_factors)
         ):
             filter = self.TrainFilter.train(reg_factor)
+            print(filter.shape)
             _, corr = self.ValidationFilter.predict(filter)
             self.c[counter] = corr
         print("Hyperparametersearch concluded.")

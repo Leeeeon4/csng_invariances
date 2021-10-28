@@ -6,6 +6,7 @@ reports/**
 
 # Models
 models/**
+csng_invariances/models/external/**
 
 # VS Code workspaces
 *.code-workspace
