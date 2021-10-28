@@ -45,8 +45,8 @@ class Filter:
         """Infilterntiates Class
 
         Args:
-            images (np.array): image data
-            responses (np.array): response data
+            images (np.array): image self.report_data
+            responses (np.array): response self.report_data
             reg_type (str, optional): Type of regularization used to compute filter.
                 Options are:
                     - "laplace regularied",
@@ -214,11 +214,11 @@ class Filter:
             print(f"The current prediction shape is {self.prediction.shape}")
 
     def _image_2d(self):
-        """Reshape image dataset to 2D representation."""
+        """Reshape image self.report_dataset to 2D representation."""
         self.images = self.images.reshape(self.image_count, self.dim1 * self.dim2)
 
     def _fil_2d(self):
-        """Reshape filter dataset to 2D representation."""
+        """Reshape filter self.report_dataset to 2D representation."""
         if len(self.fil.shape) == 4:
             assert (
                 len(self.fil.shape) == 4
@@ -228,7 +228,7 @@ class Filter:
             self.fil = np.moveaxis(self.fil, [0, 1], [1, 0])
 
     def _fil_4d(self):
-        """Reshape filter dataset to 4D representation."""
+        """Reshape filter self.report_dataset to 4D representation."""
         if len(self.fil.shape) == 2:
             if torch.is_tensor(self.fil):
                 self.fil = self.fil.numpy()
@@ -244,7 +244,7 @@ class Filter:
         """Compute Spike-triggered Average.
 
         Args:
-            responses (np.array): 2D representation of the response data.
+            responses (np.array): 2D representation of the response self.report_data.
 
         Returns:
             np.array: 2D representation of linear filters.  Filters are flattened.
@@ -257,7 +257,7 @@ class Filter:
         """Compute whitened Spike-triggered Average.
 
         Args:
-            responses (np.array): 2D representation of the response data.
+            responses (np.array): 2D representation of the response self.report_data.
 
         Returns:
             np.array: 2D representation of linear filters. Filters are flattened.
@@ -273,7 +273,7 @@ class Filter:
         """Compute ridge regularized spike-triggered average.
 
         Args:
-            responses (np.array): 2D representation of the response data.
+            responses (np.array): 2D representation of the response self.report_data.
             reg_factor (float): regularization factor.
 
         Returns:
@@ -293,10 +293,13 @@ class Filter:
         # TODO There is an error in the math for the filter computation. It works
         # correctly for square images. However, for non square images only a
         # subset of the image is correctly regularized.
+        print(
+            "Laplace regularization is not correctly implemented! Only square images are regularized as expected."
+        )
         """Compute laplace regularized spike-triggered average
 
         Args:
-            responses (np.array): 2D representation of the response data.
+            responses (np.array): 2D representation of the response self.report_data.
             reg_factor (float): Regularization factor.
 
         Returns:
@@ -540,8 +543,8 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         for neuron in range(self.neuron_count):
             self.params[neuron] = self.reg_factors
             self.corrs[neuron] = self.c
-        self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
-        self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
+        self.df_params = pd.self.report_dataFrame(self.params, columns=self.reg_factors)
+        self.df_corrs = pd.self.report_dataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
@@ -577,14 +580,82 @@ class IndividualHyperparametersearch(Hyperparametersearch):
             self.params[:, counter] = reg_factor
             self.corrs[:, counter] = self.ValidationFilter.single_neuron_correlations
         print("Hyperparametersearch concluded.")
-        self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
-        self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
+        self.df_params = pd.self.report_dataFrame(self.params, columns=self.reg_factors)
+        self.df_corrs = pd.self.report_dataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
     def get_parameters(self):
         """Get optimized hyperparameters."""
         return self.hyperparameters
+
+
+class FilterReport:
+    def __init__(self, report_file, counter):
+        self.counter = counter
+        self.report_file = report_file
+        (
+            cwd,
+            reports_dir,
+            fil_type,
+            reg_type,
+            date_time,
+            file_name,
+        ) = self.report_file.rsplit("/", 5)
+        self.correlation_file = (
+            Path.cwd()
+            / reports_dir
+            / fil_type
+            / reg_type
+            / date_time
+            / "Correlations.csv"
+        )
+        self.report_figure_path = (
+            Path.cwd() / reports_dir / "figures" / fil_type / reg_type / date_time
+        )
+        self.report_figure_path.mkdir(parents=True, exists_ok=True)
+        self.filter_file = (
+            Path.cwd() / "models" / fil_type / date_time / "evaluated_filter.npy"
+        )
+
+    def analyze(self, save=True):
+        """Analyze report files.
+
+        Sorts neuron in descending single neuron correlation order and computes
+        average correlation.
+
+        Args:
+            save (bool, optional): If True, analyzis is stored. Defaults to True.
+        """
+        self.report_data = np.load(self.report_file)
+        df = pd.DataFrame(
+            self.report_data, columns=["Neuron", "RegFactor", "Correlation"]
+        )
+        df.drop(columns=["Correlation"])
+        report_path, _ = self.report_file.rsplit("/", 1)
+        corrs = pd.read_csv(report_path + "/Correlations.csv")
+        corrs_1 = [float(corrs.columns[1])]
+        corrs_1.extend(corrs.iloc[:, 1].to_list())
+        df["Correlation"] = corrs_1
+        df = df.sort_values(["Correlation"], ascending=False, ignore_index=True)
+        self.avg_correlation = df.Correlation.sum() / len(df.Correlation)
+        if save:
+            with open(self.report_path + "/average_correlation.txt", "w") as f:
+                f.write(str(self.avg_correlation))
+            sort = df.values
+            np.save(
+                self.report_path + "/hyperparametersearch_report_descending.npy",
+                sort,
+            )
+
+    def plot(self):
+        self.filter_data = np.load(self.filter_file)
+        for i in range(self.counter):
+            corr = self.df.Correlation.iloc[i]
+            neuron = int(self.df.Neuron.iloc[i])
+            fil = self.filter_data[neuron, 0, :, :]
+            plt.imshow(fil)
+            plt.savefig(f"test_{i}.png")
 
 
 if __name__ == "__main__":
