@@ -537,7 +537,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
             reg_factor (float): Regularization factor to use.
         """
         filter = self.TrainFilter.train(reg_factor)
-        self.ValidationFilter.predict(filter)
+        self.ValidationFilter.predict(filter, single_neuron_correlation=True)
 
     def conduct_search(self):
         """Conduct hyperparametersearch.
