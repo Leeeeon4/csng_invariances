@@ -1,5 +1,7 @@
 """Provide different linear filters to estimate a linear receptive field."""
-# TODO multiprocessing
+# TODO multiprocessing and multithreading
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import pinv
 import pandas as pd
@@ -8,6 +10,7 @@ import datetime
 from rich import print
 from rich.progress import track
 from pathlib import Path
+import time
 
 import torch
 
@@ -489,17 +492,22 @@ class Hyperparametersearch:
         self.results = np.hstack(
             (self.neurons, self.hyperparameters, self.single_neuron_correlations)
         )
-        self.avg_correlation = self.df_corrs.max(axis=1).mean()
+        self.avg_correlation = self.single_neuron_correlations.mean()
         if self.report:
             np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
-            with open(self.report_dir / "readme.txt", "w") as f:
+            with open(self.report_dir / "report.md", "w") as f:
                 f.write(
                     (
-                        "hyperparametersearch_report "
-                        ".npy contains a 2D array, where column one represents the "
-                        "the neurons, column two the regularization factor and "
-                        "column three the single neuron correlation of the filter "
-                        "prediction and the real responses."
+                        "# Readme"
+                        "hyperparametersearch_report.npy contains a 2D array, "
+                        "where column one represents the the neurons, column "
+                        "two the regularization factor and column three the "
+                        "single neuron correlation of the filter prediction and "
+                        "the real responses."
+                        "# Average correlation"
+                        "The best average correlation achieved in this "
+                        "hyperparameter search was "
+                        f"{round(self.avg_correlation*100,2)} %."
                     )
                 )
         return self.results, self.avg_correlation
@@ -522,6 +530,15 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         )
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
+    def _one_hyperparameter(self, reg_factor):
+        """Compute linear filter for one regularization factor
+
+        Args:
+            reg_factor (float): Regularization factor to use.
+        """
+        filter = self.TrainFilter.train(reg_factor)
+        self.ValidationFilter.predict(filter)
+
     def conduct_search(self):
         """Conduct hyperparametersearch.
 
@@ -533,18 +550,28 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         self.corrs = np.empty((self.neuron_count, len(self.reg_factors)))
         self.c = np.empty(len(self.reg_factors))
         print("Beginning hyperparametersearch.")
+        t1 = time.time()
+        with ProcessPoolExecutor() as executor:
+            [
+                executor.submit(self._one_hyperparameter, reg_factor)
+                for reg_factor in self.reg_factors
+            ]
+        t2 = time.time()
+        print("===============================================")
         for counter, reg_factor in track(
             enumerate(self.reg_factors), total=len(self.reg_factors)
         ):
             filter = self.TrainFilter.train(reg_factor)
             _, corr = self.ValidationFilter.predict(filter)
             self.c[counter] = corr
+        t3 = time.time()
         print("Hyperparametersearch concluded.")
+        print(f"Multiprocess: {t2-t1} s\nSingleprocess: {t3-t2} s")
         for neuron in range(self.neuron_count):
             self.params[neuron] = self.reg_factors
-            self.corrs[neuron] = self.c
-        self.df_params = pd.self.report_dataFrame(self.params, columns=self.reg_factors)
-        self.df_corrs = pd.self.report_dataFrame(self.corrs, columns=self.reg_factors)
+            self.corrs[neuron] = self.ValidationFilter.single_neuron_correlations
+        self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
+        self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
@@ -580,8 +607,8 @@ class IndividualHyperparametersearch(Hyperparametersearch):
             self.params[:, counter] = reg_factor
             self.corrs[:, counter] = self.ValidationFilter.single_neuron_correlations
         print("Hyperparametersearch concluded.")
-        self.df_params = pd.self.report_dataFrame(self.params, columns=self.reg_factors)
-        self.df_corrs = pd.self.report_dataFrame(self.corrs, columns=self.reg_factors)
+        self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
+        self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
