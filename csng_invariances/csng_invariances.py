@@ -6,6 +6,16 @@ from rich import print
 from linear_receptive_field import *
 
 
+def matplotlib_style_setup():
+    # Setup Matplotlib style based on matplotlibrc-file.
+    # If two plot are supposed to fit on one presentation slide, use figsize = figure_sizes["half"]
+    mpl.rc_file("matplotlibrc")
+    figure_sizes = {
+        "full": (8, 5.6),
+        "half": (5.4, 3.8),
+    }
+
+
 def linear_receptive_field_experiments():
     """Run linear receptive field experiment.
 
@@ -107,16 +117,6 @@ def linear_receptive_field_experiments():
     print("\n\n================================================")
     print("Antolik dataset concluded.\n\n")
     print("================================================\n\n")
-
-
-def matplotlib_style_setup():
-    # Setup Matplotlib style based on matplotlibrc-file.
-    # If two plot are supposed to fit on one presentation slide, use figsize = figure_sizes["half"]
-    mpl.rc_file("matplotlibrc")
-    figure_sizes = {
-        "full": (8, 5.6),
-        "half": (5.4, 3.8),
-    }
 
 
 if __name__ == "__main__":
