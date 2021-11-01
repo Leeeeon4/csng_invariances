@@ -480,11 +480,21 @@ class Hyperparametersearch:
                 correlation col vector] and average correlation.
         """
         self.hyperparameters = np.empty(self.neuron_count)
+        print("==============================================================")
+        print(f"Correlations: {self.df_corrs}")
+        print(f"Regularization factors: {self.df_params}")
+        print("==============================================================")
         mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
         masked = self.df_params[mask].values.flatten()
+        print("==============================================================")
+        print(f"mask: {mask}\napplied mask: {masked}")
+        print("==============================================================")
         self.hyperparameters = masked[masked == masked.astype(float)].reshape(
             self.neuron_count, 1
         )
+        print("==============================================================")
+        print(f"Hyperparameters: {self.hyperparameters}")
+        print("==============================================================")
         self.single_neuron_correlations = self.df_corrs.max(axis=1).values
         self.single_neuron_correlations = self.single_neuron_correlations.reshape(
             self.neuron_count, 1
@@ -564,6 +574,49 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
+    def compute_best_parameter(self):
+        """Pick best regularization factors when globally regularized.
+
+        Returns:
+            tuple: Tuple of array [neuron col vector, regularization col vector
+                correlation col vector] and average correlation.
+        """
+        self.hyperparameters = np.empty(self.neuron_count)
+        average_corrs = self.df_corrs.mean(axis=0).values
+        data = [average_corrs for _ in range(self.neuron_count)]
+        self.df_corrs_avg = pd.DataFrame(data, columns=self.reg_factors)
+        mask = self.df_corrs_avg.eq(self.df_corrs_avg.max(axis=1), axis=0)
+        masked = self.df_params[mask].values.flatten()
+        self.hyperparameters = masked[masked == masked.astype(float)].reshape(
+            self.neuron_count, 1
+        )
+        self.single_neuron_correlations = self.df_corrs.max(axis=1).values
+        self.single_neuron_correlations = self.single_neuron_correlations.reshape(
+            self.neuron_count, 1
+        )
+        self.results = np.hstack(
+            (self.neurons, self.hyperparameters, self.single_neuron_correlations)
+        )
+        self.avg_correlation = self.single_neuron_correlations.mean()
+        if self.report:
+            np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
+            with open(self.report_dir / "report.md", "w") as f:
+                f.write(
+                    (
+                        "# Readme\n"
+                        "hyperparametersearch_report.npy contains a 2D array, "
+                        "where column one represents the the neurons, column "
+                        "two the regularization factor and column three the "
+                        "single neuron correlation of the filter prediction and "
+                        "the real responses.\n"
+                        "# Average correlation\n"
+                        "The best average correlation achieved in this "
+                        "hyperparameter search was "
+                        f"{round(self.avg_correlation*100,2)} %."
+                    )
+                )
+        return self.results, self.avg_correlation
+
     def get_parameters(self):
         """Get optimized hyperparameters."""
         return self.hyperparameters[0]
@@ -600,6 +653,56 @@ class IndividualHyperparametersearch(Hyperparametersearch):
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
+
+    def compute_best_parameter(self):
+        """Pick best regularization factors.
+
+        Returns:
+            tuple: Tuple of array [neuron col vector, regularization col vector
+                correlation col vector] and average correlation.
+        """
+        self.hyperparameters = np.empty(self.neuron_count)
+        print("==============================================================")
+        print(f"Correlations: {self.df_corrs}")
+        print(f"Regularization factors: {self.df_params}")
+        print("==============================================================")
+        mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
+        masked = self.df_params[mask].values.flatten()
+        print("==============================================================")
+        print(f"mask: {mask}\napplied mask: {masked}")
+        print("==============================================================")
+        self.hyperparameters = masked[masked == masked.astype(float)].reshape(
+            self.neuron_count, 1
+        )
+        print("==============================================================")
+        print(f"Hyperparameters: {self.hyperparameters}")
+        print("==============================================================")
+        self.single_neuron_correlations = self.df_corrs.max(axis=1).values
+        self.single_neuron_correlations = self.single_neuron_correlations.reshape(
+            self.neuron_count, 1
+        )
+        self.results = np.hstack(
+            (self.neurons, self.hyperparameters, self.single_neuron_correlations)
+        )
+        self.avg_correlation = self.single_neuron_correlations.mean()
+        if self.report:
+            np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
+            with open(self.report_dir / "report.md", "w") as f:
+                f.write(
+                    (
+                        "# Readme\n"
+                        "hyperparametersearch_report.npy contains a 2D array, "
+                        "where column one represents the the neurons, column "
+                        "two the regularization factor and column three the "
+                        "single neuron correlation of the filter prediction and "
+                        "the real responses.\n"
+                        "# Average correlation\n"
+                        "The best average correlation achieved in this "
+                        "hyperparameter search was "
+                        f"{round(self.avg_correlation*100,2)} %."
+                    )
+                )
+        return self.results, self.avg_correlation
 
     def get_parameters(self):
         """Get optimized hyperparameters."""
