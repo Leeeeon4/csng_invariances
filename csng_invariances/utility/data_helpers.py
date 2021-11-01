@@ -28,7 +28,15 @@ def normalize_tensor_to_0_1(tensor):
     Returns:
         torch.tensor: Input tensor normalized to 0 and 1.
     """
-    return tensor.div(tensor.max())
+    if torch.is_tensor(tensor):
+        tensor = tensor.add(abs(tensor.min()))
+        tensor = tensor.div(tensor.max())
+    else:
+        tensor = torch.from_numpy(tensor)
+        tensor = tensor.add(abs(tensor.min()))
+        tensor = tensor.div(tensor.max())
+        tensor = tensor.numpy()
+    return tensor
 
 
 def make_directories():

@@ -15,7 +15,7 @@ def linear_receptive_field_experiments():
     For the Antolik dataset this is done for each of the three regions.
     """
     ########################## Regularization factors #########################
-    reg_factors = [1 * 10 ** x for x in np.linspace(-5, 5, 10)]
+    reg_factors = [1 * 10 ** x for x in np.linspace(-5, 5, 50)]
 
     ################################## Lurz ###################################
 
