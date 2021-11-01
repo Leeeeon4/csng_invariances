@@ -3,7 +3,6 @@ import torch
 import torchvision
 import numpy as np
 
-
 from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.discriminator import (
     download_pretrained_lurz_model,
