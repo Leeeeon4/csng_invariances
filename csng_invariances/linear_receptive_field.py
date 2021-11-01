@@ -151,6 +151,7 @@ def linear_receptive_field_argparse(parser):
     Returns:
         dict: dictionary of kwargs and values.
     """
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--report_path",
         type=str,
@@ -168,14 +169,6 @@ def linear_receptive_field_argparse(parser):
     )
     kwargs = parser.parse_args()
     return vars(kwargs)
-
-
-def evaluate_reports(report_path, **kwargs):
-    pass
-
-
-def plot_best(filter_path, count, **kwargs):
-    pass
 
 
 if __name__ == "__main__":

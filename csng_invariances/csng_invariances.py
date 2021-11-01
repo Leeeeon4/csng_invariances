@@ -47,17 +47,17 @@ def linear_receptive_field_experiments():
     print("-----------------------------------------------\n")
 
     # ######################## Individual regularization ########################
-    # print("\n-----------------------------------------------")
-    # print("Begin indivially regularized linear receptive field estimate experiment.")
-    # print("-----------------------------------------------\n")
+    print("\n-----------------------------------------------")
+    print("Begin indivially regularized linear receptive field estimate experiment.")
+    print("-----------------------------------------------\n")
 
-    # # Conduct hyperparameter search
-    # individually_regularized_linear_receptive_field(
-    #     reg_factors, train_images, train_responses, val_images, val_responses
-    # )
-    # print("\n\n================================================")
-    # print("Lurz dataset concluded.")
-    # print("================================================\n\n")
+    # Conduct hyperparameter search
+    individually_regularized_linear_receptive_field(
+        reg_factors, train_images, train_responses, val_images, val_responses
+    )
+    print("\n\n================================================")
+    print("Lurz dataset concluded.")
+    print("================================================\n\n")
 
     ################################# Antolik #################################
 
@@ -91,17 +91,17 @@ def linear_receptive_field_experiments():
         )
         print("-----------------------------------------------\n")
 
-        # ###################### Individual regularization ######################
-        # print(
-        #     "Begin indivially regularized linear receptive field estimate experiment."
-        # )
-        # print("-----------------------------------------------\n")
+        ###################### Individual regularization ######################
+        print(
+            "Begin indivially regularized linear receptive field estimate experiment."
+        )
+        print("-----------------------------------------------\n")
 
-        # # Conduct hyperparametersearch
-        # individually_regularized_linear_receptive_field(
-        #     reg_factors, train_images, train_responses, val_images, val_responses
-        # )
-        # print("\n-----------------------------------------------")
+        # Conduct hyperparametersearch
+        individually_regularized_linear_receptive_field(
+            reg_factors, train_images, train_responses, val_images, val_responses
+        )
+        print("\n-----------------------------------------------")
         print(f"Conclude {region}.")
 
     print("\n\n================================================")
