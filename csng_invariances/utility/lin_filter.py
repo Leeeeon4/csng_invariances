@@ -498,13 +498,13 @@ class Hyperparametersearch:
             with open(self.report_dir / "report.md", "w") as f:
                 f.write(
                     (
-                        "# Readme"
+                        "# Readme\n"
                         "hyperparametersearch_report.npy contains a 2D array, "
                         "where column one represents the the neurons, column "
                         "two the regularization factor and column three the "
                         "single neuron correlation of the filter prediction and "
-                        "the real responses."
-                        "# Average correlation"
+                        "the real responses.\n"
+                        "# Average correlation\n"
                         "The best average correlation achieved in this "
                         "hyperparameter search was "
                         f"{round(self.avg_correlation*100,2)} %."
@@ -537,7 +537,8 @@ class GlobalHyperparametersearch(Hyperparametersearch):
             reg_factor (float): Regularization factor to use.
         """
         filter = self.TrainFilter.train(reg_factor)
-        self.ValidationFilter.predict(filter, single_neuron_correlation=True)
+        self.ValidationFilter.predict(filter, True)
+        return self.ValidationFilter.single_neuron_correlations
 
     def conduct_search(self):
         """Conduct hyperparametersearch.
@@ -550,26 +551,14 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         self.corrs = np.empty((self.neuron_count, len(self.reg_factors)))
         self.c = np.empty(len(self.reg_factors))
         print("Beginning hyperparametersearch.")
-        t1 = time.time()
         with ProcessPoolExecutor() as executor:
-            [
-                executor.submit(self._one_hyperparameter, reg_factor)
-                for reg_factor in self.reg_factors
-            ]
-        t2 = time.time()
-        print("===============================================")
-        for counter, reg_factor in track(
-            enumerate(self.reg_factors), total=len(self.reg_factors)
-        ):
-            filter = self.TrainFilter.train(reg_factor)
-            _, corr = self.ValidationFilter.predict(filter)
-            self.c[counter] = corr
-        t3 = time.time()
-        print("Hyperparametersearch concluded.")
-        print(f"Multiprocess: {t2-t1} s\nSingleprocess: {t3-t2} s")
-        for neuron in range(self.neuron_count):
-            self.params[neuron] = self.reg_factors
-            self.corrs[neuron] = self.ValidationFilter.single_neuron_correlations
+            single_neuron_correlations = executor.map(
+                self._one_hyperparameter, self.reg_factors
+            )
+            for neuron in range(self.neuron_count):
+                self.params[neuron, :] = self.reg_factors
+            for counter, value in enumerate(single_neuron_correlations):
+                self.corrs[:, counter] = value
         self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
