@@ -538,6 +538,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         """
         filter = self.TrainFilter.train(reg_factor)
         self.ValidationFilter.predict(filter, single_neuron_correlation=True)
+        time.sleep(1)
 
     def conduct_search(self):
         """Conduct hyperparametersearch.
@@ -552,10 +553,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         print("Beginning hyperparametersearch.")
         t1 = time.time()
         with ProcessPoolExecutor() as executor:
-            [
-                executor.submit(self._one_hyperparameter, reg_factor)
-                for reg_factor in self.reg_factors
-            ]
+            executor.map(self._one_hyperparameter, self.reg_factors)
         t2 = time.time()
         print("===============================================")
         for counter, reg_factor in track(
@@ -564,6 +562,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
             filter = self.TrainFilter.train(reg_factor)
             _, corr = self.ValidationFilter.predict(filter)
             self.c[counter] = corr
+            time.sleep(1)
         t3 = time.time()
         print("Hyperparametersearch concluded.")
         print(f"Multiprocess: {t2-t1} s\nSingleprocess: {t3-t2} s")
