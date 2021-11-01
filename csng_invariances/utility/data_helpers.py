@@ -1,8 +1,12 @@
+"""Module with misc. function for data handeling."""
+
+
 import numpy as np
 import torch
 import torch.utils.data as utils
-from pathlib import Path
+
 from neuralpredictors.data.samplers import RepeatsBatchSampler
+from pathlib import Path
 
 
 # Testdata

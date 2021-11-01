@@ -1,20 +1,21 @@
 """Provide different discriminator models."""
 
 import torch
-from torch import nn
 import numpy as np
 import copy
 import requests
-from pathlib import Path
 
+from torch import nn
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import (
     MultipleFullGaussian2d,
     MultiplePointPooled2d,
     MultipleFullSXF,
 )
-from utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
+from pathlib import Path
+
+from csng_invariances.utility.data_helpers import unpack_data_info
 
 
 def download_pretrained_lurz_model():
@@ -70,14 +71,15 @@ def get_core_trained_model(dataloaders):
 
     model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=1)
     # Download pretrained model if not there
-    if (
-        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar"
-    ).is_file() is False:
+
+    model_path = Path.cwd() / "models" / "external" / "lurz2020"
+    if (model_path / "transfer_model.pth.tar").is_file() is False:
         download_pretrained_lurz_model()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # load model
     transfer_model = torch.load(
-        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
-        map_location=torch.device("cpu"),
+        model_path / "transfer_model.pth.tar",
+        map_location=device,
     )
     model.load_state_dict(transfer_model, strict=False)
 
@@ -888,7 +890,7 @@ class ExampleDiscriminator(nn.Module):
 
     def _init_layers(self, layers):
         """Initialize the layers and store as self.module_list.
- 
+
         Args:
             layers (List[int]): A list of layer widths including output width.
         """

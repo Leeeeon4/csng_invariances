@@ -5,10 +5,11 @@ DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX."""
 import warnings
 import numpy as np
 import torch
-from neuralpredictors.measures import corr
-from neuralpredictors.training import eval_state, device_state
 import types
 import contextlib
+
+from neuralpredictors.measures import corr
+from neuralpredictors.training import eval_state, device_state
 
 
 def model_predictions_repeats(

@@ -1,19 +1,20 @@
 """Provide different linear filters to estimate a linear receptive field."""
 
-from concurrent.futures import ProcessPoolExecutor
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-from numpy.linalg import pinv
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import datetime
+import torch
+import torchvision
+
+from numpy.linalg import pinv
+from concurrent.futures import ProcessPoolExecutor
 from rich import print
 from rich.progress import track
 from pathlib import Path
-import matplotlib as mpl
-from utility.data_helpers import normalize_tensor_to_0_1 as norm
-import torch
-import torchvision
+
+from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm
 
 
 figure_sizes = {
@@ -21,7 +22,7 @@ figure_sizes = {
     "half": (5.4, 3.8),
 }
 
-mpl.rc_file((str(Path.cwd().parents[0] / "matplotlibrc")))
+mpl.rc_file((str(Path.cwd() / "matplotlibrc")))
 
 
 def _reshape_filter_2d(fil):
@@ -149,7 +150,7 @@ class Filter:
             dict: Dictionary of Neurons and Correlations
         """
         if report_dir is None:
-            self.report_dir = Path.cwd() / "reports" / "linear_filter" / self.time
+            self.report_dir = automatic_cwd / "reports" / "linear_filter" / self.time
             self.report_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.report_dir = report_dir
@@ -661,23 +662,10 @@ class HyperparameterSearchAnalyzer:
         ) = report_file.rsplit("/", 5)
         self.report_file_name = report_file
         self.reg_type = reg_type
-        # # paths in scripts
-        # self.report_path = Path.cwd() / reports_dir / model_type / reg_type / date_time
-        # self.model_path = Path.cwd() / "models" / model_type / date_time / "evaluated_filter.npy"
-        # self.report_figures_path = Path.cwd() / reports_dir / "figures" / model_type / reg_type / date_time
-
-        # paths in ipy usage
-        self.report_path = (
-            Path.cwd().parents[0] / reports_dir / model_type / reg_type / date_time
-        )
-        self.model_path = Path.cwd().parents[0] / "models" / model_type / date_time
+        self.report_path = Path.cwd() / reports_dir / model_type / reg_type / date_time
+        self.model_path = Path.cwd() / "models" / model_type / date_time
         self.report_figures_path = (
-            Path.cwd().parents[0]
-            / reports_dir
-            / "figures"
-            / model_type
-            / reg_type
-            / date_time
+            Path.cwd() / reports_dir / "figures" / model_type / reg_type / date_time
         )
 
         self.report_figures_path.mkdir(parents=True, exist_ok=True)

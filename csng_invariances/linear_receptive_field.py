@@ -1,13 +1,17 @@
 """Module providing functions for conducting linear receptive field estimate experiments.
 """
 
+
+import argparse
+
 from pathlib import Path
 from rich import print
-import datasets.antolik2016 as al
-import datasets.lurz2020 as lu
-import utility.lin_filter as lin_fil
-from utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
-import argparse
+
+import csng_invariances.datasets.antolik2016 as al
+import csng_invariances.datasets.lurz2020 as lu
+import csng_invariances.utility.lin_filter as lin_fil
+
+from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
 
 
 def get_lurz_dataset():
@@ -151,6 +155,7 @@ def linear_receptive_field_argparse(parser):
     Returns:
         dict: dictionary of kwargs and values.
     """
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--report_path",
         type=str,
@@ -168,14 +173,6 @@ def linear_receptive_field_argparse(parser):
     )
     kwargs = parser.parse_args()
     return vars(kwargs)
-
-
-def evaluate_reports(report_path, **kwargs):
-    pass
-
-
-def plot_best(filter_path, count, **kwargs):
-    pass
 
 
 if __name__ == "__main__":

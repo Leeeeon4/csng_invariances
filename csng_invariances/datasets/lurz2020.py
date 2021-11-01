@@ -1,13 +1,15 @@
 """This code was provided by Lurz et al. ICLR 2021: GENERALIZATION IN
 DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX."""
 
-from collections import OrderedDict
-from itertools import zip_longest
 import numpy as np
 import torch
+import requests
+import zipfile
+
+from collections import OrderedDict
+from itertools import zip_longest
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-
 from nnfabrik.utility.nn_helpers import set_random_seed
 from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
 from neuralpredictors.data.transforms import (
@@ -18,14 +20,13 @@ from neuralpredictors.data.transforms import (
     SelectInputChannel,
 )
 from neuralpredictors.data.samplers import SubsetSequentialSampler
-from utility.data_helpers import (
+from rich import print
+from pathlib import Path
+
+from csng_invariances.utility.data_helpers import (
     get_oracle_dataloader,
     make_directories,
 )
-import requests
-import zipfile
-from pathlib import Path
-from rich import print
 
 
 def download_lurz2020_data():
