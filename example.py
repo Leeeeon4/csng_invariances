@@ -5,10 +5,12 @@ on: https://towardsdatascience.com/pytorch-and-gans-a-micro-tutorial-804855817a6
 """
 
 import torch
-from models.discriminator import ExampleDiscriminator as Discriminator
-from models.generator import ExampleGenerator as Generator
-from models.gan import ExampleGAN as VanillaGAN
 import wandb
+
+from csng_invariances.models.discriminator import ExampleDiscriminator as Discriminator
+from csng_invariances.models.generator import ExampleGenerator as Generator
+from csng_invariances.models.gan import ExampleGAN as VanillaGAN
+
 from rich import print
 
 

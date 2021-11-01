@@ -5,13 +5,13 @@ The modul was altered to incorporate weights and biases logging.
 """
 
 
-from functools import partial
 import numpy as np
 import torch
-from tqdm import tqdm
 import wandb
-from rich import print
 
+from functools import partial
+from tqdm import tqdm
+from rich import print
 from neuralpredictors import measures as mlmeasures
 from neuralpredictors.training import (
     early_stopping,
@@ -20,8 +20,7 @@ from neuralpredictors.training import (
 )
 from nnfabrik.utility.nn_helpers import set_random_seed
 
-from utility import measures
-from utility.measures import get_correlations, get_poisson_loss
+from csng_invariances.utility.measures import get_correlations, get_poisson_loss
 
 
 def standard_trainer(

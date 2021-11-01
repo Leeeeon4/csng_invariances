@@ -1,15 +1,17 @@
 """Handels dataset presented in Antolik et al. 2016.
 """
 
-from pathlib import Path
+
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 import requests
 import zipfile
-from csng_invariances.utility.ipyhandler import automatic_cwd
-from utility.data_helpers import make_directories
+
+from torch.utils.data import Dataset
 from rich import print
+
+from csng_invariances.utility.ipyhandler import automatic_cwd
+from csng_invariances.utility.data_helpers import make_directories
 
 
 def get_antolik2016_data():

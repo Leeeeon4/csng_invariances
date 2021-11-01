@@ -3,11 +3,14 @@ import torch
 import torchvision
 import numpy as np
 
-from pathlib import Path
-from datasets.lurz2020 import download_lurz2020_data, static_loaders
-from models.discriminator import download_pretrained_lurz_model, get_core_trained_model
-from training.trainers import standard_trainer as lurz_trainer
-from utility.ipyhandler import automatic_cwd
+
+from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
+from csng_invariances.models.discriminator import (
+    download_pretrained_lurz_model,
+    se2d_fullgaussian2d,
+)
+from csng_invariances.training.trainers import standard_trainer as lurz_trainer
+from csng_invariances.utility.ipyhandler import automatic_cwd
 
 # %%
 batch_size = 64
@@ -16,7 +19,6 @@ cuda = True
 detach_core = True
 # %%
 # Load data and model
-
 lurz_data_path = automatic_cwd() / "data" / "external" / "lurz2020"
 lurz_model_path = automatic_cwd() / "model" / "external" / "lurz2020"
 
@@ -25,6 +27,7 @@ if (lurz_data_path / "README.md").is_file() is False:
 if (lurz_model_path / "transfer_model.pth.tar").is_file() is False:
     download_pretrained_lurz_model()
 
+# %%
 dataset_config = {
     "paths": [str(lurz_data_path / "static20457-5-9-preproc0")],
     "batch_size": batch_size,

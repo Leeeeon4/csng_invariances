@@ -1,21 +1,21 @@
 """Provide different discriminator models."""
 
 import torch
-from torch import nn
 import numpy as np
 import copy
 import requests
-from pathlib import Path
 
+from torch import nn
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import (
     MultipleFullGaussian2d,
     MultiplePointPooled2d,
     MultipleFullSXF,
 )
-from utility.data_helpers import unpack_data_info
-from utility.ipyhandler import automatic_cwd
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
+
+from csng_invariances.utility.data_helpers import unpack_data_info
+from csng_invariances.utility.ipyhandler import automatic_cwd
 
 
 def download_pretrained_lurz_model():

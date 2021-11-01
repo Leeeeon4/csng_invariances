@@ -1,15 +1,16 @@
 """Module provding CNN encoding functionality."""
 
 import wandb
-from csng_invariances.utility.ipyhandler import automatic_cwd
-from datasets.lurz2020 import download_lurz2020_data, static_loaders
-from models.discriminator import get_core_trained_model
-from training.trainers import standard_trainer as trainer
 import torch
 import argparse
+
 from rich import print
-from pathlib import Path
 from datetime import datetime
+
+from csng_invariances.utility.ipyhandler import automatic_cwd
+from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
+from csng_invariances.models.discriminator import get_core_trained_model
+from csng_invariances.training.trainers import standard_trainer as trainer
 
 
 def encode():

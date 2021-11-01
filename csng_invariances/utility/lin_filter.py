@@ -1,20 +1,21 @@
 """Provide different linear filters to estimate a linear receptive field."""
 
-from concurrent.futures import ProcessPoolExecutor
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-from numpy.linalg import pinv
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import datetime
-from rich import print
-from rich.progress import track
-from pathlib import Path
-import matplotlib as mpl
-from csng_invariances.utility.ipyhandler import automatic_cwd
-from utility.data_helpers import normalize_tensor_to_0_1 as norm
 import torch
 import torchvision
+
+from numpy.linalg import pinv
+from concurrent.futures import ProcessPoolExecutor
+from rich import print
+from rich.progress import track
+
+from csng_invariances.utility.ipyhandler import automatic_cwd
+from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm
+
 
 
 figure_sizes = {

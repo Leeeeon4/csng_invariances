@@ -1,13 +1,16 @@
 """Module providing functions for conducting linear receptive field estimate experiments.
 """
 
-from pathlib import Path
-from rich import print
-import datasets.antolik2016 as al
-import datasets.lurz2020 as lu
-import utility.lin_filter as lin_fil
-from utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
+
 import argparse
+
+from rich import print
+
+import csng_invariances.datasets.antolik2016 as al
+import csng_invariances.datasets.lurz2020 as lu
+import csng_invariances.utility.lin_filter as lin_fil
+
+from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
 from csng_invariances.utility.ipyhandler import automatic_cwd
 
 

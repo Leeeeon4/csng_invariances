@@ -2,8 +2,10 @@
 
 import numpy as np
 import matplotlib as mpl
+
 from rich import print
-from linear_receptive_field import *
+
+from csng_invariances.linear_receptive_field import *
 
 
 def matplotlib_style_setup():
