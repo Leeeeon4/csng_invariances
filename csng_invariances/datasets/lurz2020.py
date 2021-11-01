@@ -21,8 +21,8 @@ from neuralpredictors.data.transforms import (
 )
 from neuralpredictors.data.samplers import SubsetSequentialSampler
 from rich import print
+from pathlib import Path
 
-from csng_invariances.utility.ipyhandler import automatic_cwd
 from csng_invariances.utility.data_helpers import (
     get_oracle_dataloader,
     make_directories,
@@ -46,7 +46,7 @@ def download_lurz2020_data():
     data_external_lurz_directory.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip, "r") as zip_ref:
         zip_ref.extractall(data_external_lurz_directory)
-    zip = automatic_cwd() / zip
+    zip = Path.cwd() / zip
     zip.unlink()
     print("Finished downlading and extracting dataset")
     return data_external_lurz_directory
@@ -64,7 +64,7 @@ def get_dataloaders(cuda=False):
             keys are data_keys and dict of dataset config.
     """
     # Checking if data is downloaded:
-    lurz_dir = automatic_cwd() / "data" / "external" / "lurz2020"
+    lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
     if (lurz_dir / "README.md").is_file() is False:
         download_lurz2020_data()
     # Building Dataloaders

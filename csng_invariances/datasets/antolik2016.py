@@ -9,8 +9,9 @@ import zipfile
 
 from torch.utils.data import Dataset
 from rich import print
+from rich.progress import track
+from pathlib import Path
 
-from csng_invariances.utility.ipyhandler import automatic_cwd
 from csng_invariances.utility.data_helpers import make_directories
 
 
@@ -33,7 +34,7 @@ def get_antolik2016_data():
     data_external_antolik_directory.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip, "r") as zip_ref:
         zip_ref.extractall(data_external_antolik_directory)
-    zip = automatic_cwd() / zip
+    zip = Path.cwd() / zip
     zip.unlink()
     print("Finished downlading and extracting dataset")
     return data_external_antolik_directory / "Data"
@@ -137,7 +138,7 @@ class Antolik2016Dataset(Dataset):
         assert dataset_type in set(["training", "validation"]), assertation_message
         assertation_message = "region should be one of'region1', 'region2', 'region3'"
         assert region in set(["region1", "region2", "region3"]), assertation_message
-        self.data_dir = automatic_cwd() / "data" / "external" / "antolik2016" / "Data"
+        self.data_dir = Path.cwd() / "data" / "external" / "antolik2016" / "Data"
         if (self.data_dir / "README").exists() is False:
             make_directories()
             self.data_dir = get_antolik2016_data()

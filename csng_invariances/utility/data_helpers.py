@@ -6,8 +6,7 @@ import torch
 import torch.utils.data as utils
 
 from neuralpredictors.data.samplers import RepeatsBatchSampler
-
-from csng_invariances.utility.ipyhandler import automatic_cwd
+from pathlib import Path
 
 
 # Testdata
@@ -50,14 +49,14 @@ def make_directories():
     Returns:
         list: List of created directories.
     """
-    data_dir = automatic_cwd() / "data"
+    data_dir = Path.cwd() / "data"
     data_external_dir = data_dir / "external"
     data_interim = data_dir / "interim"
     data_processed = data_dir / "processed"
     data_raw = data_dir / "raw"
-    models_dir = automatic_cwd() / "models"
+    models_dir = Path.cwd() / "models"
     models_external_dir = models_dir / "external"
-    report_dir = automatic_cwd() / "reports"
+    report_dir = Path.cwd() / "reports"
     report_figure_dir = report_dir / "figures"
     directories = [
         data_dir,

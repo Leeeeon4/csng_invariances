@@ -12,10 +12,9 @@ from numpy.linalg import pinv
 from concurrent.futures import ProcessPoolExecutor
 from rich import print
 from rich.progress import track
+from pathlib import Path
 
-from csng_invariances.utility.ipyhandler import automatic_cwd
 from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm
-
 
 
 figure_sizes = {
@@ -23,7 +22,7 @@ figure_sizes = {
     "half": (5.4, 3.8),
 }
 
-mpl.rc_file((str(automatic_cwd() / "matplotlibrc")))
+mpl.rc_file((str(Path.cwd() / "matplotlibrc")))
 
 
 def _reshape_filter_2d(fil):
@@ -93,7 +92,7 @@ class Filter:
 
         # instantiate attributes
         self.time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
-        self.model_dir = automatic_cwd() / "models" / "linear_filter" / self.time
+        self.model_dir = Path.cwd() / "models" / "linear_filter" / self.time
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self.report_dir = None
         self.figure_dir = None
@@ -168,11 +167,7 @@ class Filter:
             )[0, 1]
             if store_images:
                 self.figure_dir = (
-                    automatic_cwd()
-                    / "reports"
-                    / "figures"
-                    / "linear_filter"
-                    / self.time
+                    Path.cwd() / "reports" / "figures" / "linear_filter" / self.time
                 )
                 self.figure_dir.mkdir(parents=True, exist_ok=True)
                 fig, ax = plt.subplots(figsize=figure_sizes["half"])
@@ -570,7 +565,7 @@ class GlobalHyperparametersearch(Hyperparametersearch):
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
-            automatic_cwd()
+            Path.cwd()
             / "reports"
             / "linear_filter"
             / "global_hyperparametersearch"
@@ -617,7 +612,7 @@ class IndividualHyperparametersearch(Hyperparametersearch):
     def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
         super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
         self.report_dir = (
-            automatic_cwd()
+            Path.cwd()
             / "reports"
             / "linear_filter"
             / "individual_hyperparametersearch"
@@ -667,23 +662,10 @@ class HyperparameterSearchAnalyzer:
         ) = report_file.rsplit("/", 5)
         self.report_file_name = report_file
         self.reg_type = reg_type
-        # # paths in scripts
-        # self.report_path = automatic_cwd() / reports_dir / model_type / reg_type / date_time
-        # self.model_path = automatic_cwd() / "models" / model_type / date_time / "evaluated_filter.npy"
-        # self.report_figures_path = automatic_cwd() / reports_dir / "figures" / model_type / reg_type / date_time
-
-        # paths in ipy usage
-        self.report_path = (
-            automatic_cwd() / reports_dir / model_type / reg_type / date_time
-        )
-        self.model_path = automatic_cwd() / "models" / model_type / date_time
+        self.report_path = Path.cwd() / reports_dir / model_type / reg_type / date_time
+        self.model_path = Path.cwd() / "models" / model_type / date_time
         self.report_figures_path = (
-            automatic_cwd()
-            / reports_dir
-            / "figures"
-            / model_type
-            / reg_type
-            / date_time
+            Path.cwd() / reports_dir / "figures" / model_type / reg_type / date_time
         )
 
         self.report_figures_path.mkdir(parents=True, exist_ok=True)

@@ -3,6 +3,8 @@ import torch
 import torchvision
 import numpy as np
 
+from pathlib import Path
+
 from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.discriminator import (
     download_pretrained_lurz_model,
@@ -20,6 +22,8 @@ detach_core = True
 # Load data and model
 lurz_data_path = automatic_cwd() / "data" / "external" / "lurz2020"
 lurz_model_path = automatic_cwd() / "model" / "external" / "lurz2020"
+
+download_lurz2020_data() if (lurz_data_path / "README.md").is_file() is False else None
 
 if (lurz_data_path / "README.md").is_file() is False:
     download_lurz2020_data()
@@ -73,3 +77,5 @@ if detach_core:
 else:
     print("Core will be fine-tuned")
 # %%
+
+%%
