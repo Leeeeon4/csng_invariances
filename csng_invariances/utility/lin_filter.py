@@ -1,5 +1,5 @@
 """Provide different linear filters to estimate a linear receptive field."""
-# TODO multiprocessing and multithreading
+
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
@@ -10,15 +10,18 @@ import datetime
 from rich import print
 from rich.progress import track
 from pathlib import Path
-import time
-
+import matplotlib as mpl
+from utility.data_helpers import normalize_tensor_to_0_1 as norm
 import torch
+import torchvision
 
 
 figure_sizes = {
     "full": (8, 5.6),
     "half": (5.4, 3.8),
 }
+
+mpl.rc_file((str(Path.cwd().parents[0] / "matplotlibrc")))
 
 
 def _reshape_filter_2d(fil):
@@ -195,7 +198,7 @@ class Filter:
                     )
                 )
         print("Reporting procedure concluded.")
-        return self.neural_correlations
+        return self.report_dir / ""
 
     def select_neurons(self):
         # TODO neuron selection process
@@ -469,77 +472,6 @@ class Hyperparametersearch:
         )
         self.time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
 
-    def conduct_search(self):
-        None
-
-    def compute_best_parameter(self):
-        """Pick best regularization factors.
-
-        Returns:
-            tuple: Tuple of array [neuron col vector, regularization col vector
-                correlation col vector] and average correlation.
-        """
-        self.hyperparameters = np.empty(self.neuron_count)
-        print("==============================================================")
-        print(f"Correlations: {self.df_corrs}")
-        print(f"Regularization factors: {self.df_params}")
-        print("==============================================================")
-        mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
-        masked = self.df_params[mask].values.flatten()
-        print("==============================================================")
-        print(f"mask: {mask}\napplied mask: {masked}")
-        print("==============================================================")
-        self.hyperparameters = masked[masked == masked.astype(float)].reshape(
-            self.neuron_count, 1
-        )
-        print("==============================================================")
-        print(f"Hyperparameters: {self.hyperparameters}")
-        print("==============================================================")
-        self.single_neuron_correlations = self.df_corrs.max(axis=1).values
-        self.single_neuron_correlations = self.single_neuron_correlations.reshape(
-            self.neuron_count, 1
-        )
-        self.results = np.hstack(
-            (self.neurons, self.hyperparameters, self.single_neuron_correlations)
-        )
-        self.avg_correlation = self.single_neuron_correlations.mean()
-        if self.report:
-            np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
-            with open(self.report_dir / "report.md", "w") as f:
-                f.write(
-                    (
-                        "# Readme\n"
-                        "hyperparametersearch_report.npy contains a 2D array, "
-                        "where column one represents the the neurons, column "
-                        "two the regularization factor and column three the "
-                        "single neuron correlation of the filter prediction and "
-                        "the real responses.\n"
-                        "# Average correlation\n"
-                        "The best average correlation achieved in this "
-                        "hyperparameter search was "
-                        f"{round(self.avg_correlation*100,2)} %."
-                    )
-                )
-        return self.results, self.avg_correlation
-
-    def get_parameters(self):
-        None
-
-
-class GlobalHyperparametersearch(Hyperparametersearch):
-    """Hyperparametersearch for globally regularized linear filters."""
-
-    def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
-        super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
-        self.report_dir = (
-            Path.cwd()
-            / "reports"
-            / "linear_filter"
-            / "global_hyperparametersearch"
-            / self.time
-        )
-        self.report_dir.mkdir(parents=True, exist_ok=True)
-
     def _one_hyperparameter(self, reg_factor):
         """Compute linear filter for one regularization factor
 
@@ -562,30 +494,30 @@ class GlobalHyperparametersearch(Hyperparametersearch):
         self.c = np.empty(len(self.reg_factors))
         print("Beginning hyperparametersearch.")
         with ProcessPoolExecutor() as executor:
-            single_neuron_correlations = executor.map(
-                self._one_hyperparameter, self.reg_factors
+            single_neuron_correlations = list(
+                track(
+                    executor.map(self._one_hyperparameter, self.reg_factors),
+                    total=len(self.reg_factors),
+                )
             )
             for neuron in range(self.neuron_count):
                 self.params[neuron, :] = self.reg_factors
             for counter, value in enumerate(single_neuron_correlations):
                 self.corrs[:, counter] = value
+        print("Concluded hyperparametersearch.")
         self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
         self.search = np.hstack((self.neurons, self.params, self.corrs))
         return self.search
 
-    def compute_best_parameter(self):
-        """Pick best regularization factors when globally regularized.
+    def _cmp_best(self, mask):
+        """Computes average correlation, single neuron correlation based on
+        passed mask.
 
-        Returns:
-            tuple: Tuple of array [neuron col vector, regularization col vector
-                correlation col vector] and average correlation.
+        Args:
+            mask (DataFrame): Boolean DataFrame to use as mask for picking
+                hyperparameter
         """
-        self.hyperparameters = np.empty(self.neuron_count)
-        average_corrs = self.df_corrs.mean(axis=0).values
-        data = [average_corrs for _ in range(self.neuron_count)]
-        self.df_corrs_avg = pd.DataFrame(data, columns=self.reg_factors)
-        mask = self.df_corrs_avg.eq(self.df_corrs_avg.max(axis=1), axis=0)
         masked = self.df_params[mask].values.flatten()
         self.hyperparameters = masked[masked == masked.astype(float)].reshape(
             self.neuron_count, 1
@@ -598,6 +530,9 @@ class GlobalHyperparametersearch(Hyperparametersearch):
             (self.neurons, self.hyperparameters, self.single_neuron_correlations)
         )
         self.avg_correlation = self.single_neuron_correlations.mean()
+
+    def _reporting(self):
+        """Reports hyperparametersearch."""
         if self.report:
             np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
             with open(self.report_dir / "report.md", "w") as f:
@@ -615,6 +550,54 @@ class GlobalHyperparametersearch(Hyperparametersearch):
                         f"{round(self.avg_correlation*100,2)} %."
                     )
                 )
+
+    def compute_best_parameter(self):
+        None
+
+    def get_parameters(self):
+        None
+
+
+class GlobalHyperparametersearch(Hyperparametersearch):
+    """Hyperparametersearch for globally regularized linear filters."""
+
+    def __init__(self, TrainFilter, ValidationFilter, reg_factors, report=True):
+        super().__init__(TrainFilter, ValidationFilter, reg_factors, report=report)
+        self.report_dir = (
+            Path.cwd()
+            / "reports"
+            / "linear_filter"
+            / "global_hyperparametersearch"
+            / self.time
+        )
+        self.report_dir.mkdir(parents=True, exist_ok=True)
+
+    def _one_hyperparameter(self, reg_factor):
+        return super()._one_hyperparameter(reg_factor)
+
+    def conduct_search(self):
+        return super().conduct_search()
+
+    def _cmp_best(self, mask):
+        return super()._cmp_best(mask)
+
+    def _reporting(self):
+        return super()._reporting()
+
+    def compute_best_parameter(self):
+        """Pick best regularization factors when globally regularized.
+
+        Returns:
+            tuple: Tuple of array [neuron col vector, regularization col vector
+                correlation col vector] and average correlation.
+        """
+        self.hyperparameters = np.empty(self.neuron_count)
+        average_corrs = self.df_corrs.mean(axis=0).values
+        data = [average_corrs for _ in range(self.neuron_count)]
+        self.df_corrs_avg = pd.DataFrame(data, columns=self.reg_factors)
+        mask = self.df_corrs_avg.eq(self.df_corrs_avg.max(axis=1), axis=0)
+        self._cmp_best(mask)
+        self._reporting()
         return self.results, self.avg_correlation
 
     def get_parameters(self):
@@ -636,23 +619,17 @@ class IndividualHyperparametersearch(Hyperparametersearch):
         )
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
+    def _one_hyperparameter(self, reg_factor):
+        return super()._one_hyperparameter(reg_factor)
+
     def conduct_search(self):
-        self.params = np.empty((self.neuron_count, len(self.reg_factors)))
-        self.corrs = np.empty((self.neuron_count, len(self.reg_factors)))
-        print("Beginning hyperparametersearch.")
-        for counter, reg_factor in track(
-            enumerate(self.reg_factors), total=len(self.reg_factors)
-        ):
-            reg_factor = [reg_factor for i in range(self.neuron_count)]
-            filter = self.TrainFilter.train(reg_factor)
-            self.ValidationFilter.predict(filter, True)
-            self.params[:, counter] = reg_factor
-            self.corrs[:, counter] = self.ValidationFilter.single_neuron_correlations
-        print("Hyperparametersearch concluded.")
-        self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
-        self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
-        self.search = np.hstack((self.neurons, self.params, self.corrs))
-        return self.search
+        return super().conduct_search()
+
+    def _cmp_best(self, mask):
+        return super()._cmp_best(mask)
+
+    def _reporting(self):
+        return super()._reporting()
 
     def compute_best_parameter(self):
         """Pick best regularization factors.
@@ -662,46 +639,9 @@ class IndividualHyperparametersearch(Hyperparametersearch):
                 correlation col vector] and average correlation.
         """
         self.hyperparameters = np.empty(self.neuron_count)
-        print("==============================================================")
-        print(f"Correlations: {self.df_corrs}")
-        print(f"Regularization factors: {self.df_params}")
-        print("==============================================================")
         mask = self.df_corrs.eq(self.df_corrs.max(axis=1), axis=0)
-        masked = self.df_params[mask].values.flatten()
-        print("==============================================================")
-        print(f"mask: {mask}\napplied mask: {masked}")
-        print("==============================================================")
-        self.hyperparameters = masked[masked == masked.astype(float)].reshape(
-            self.neuron_count, 1
-        )
-        print("==============================================================")
-        print(f"Hyperparameters: {self.hyperparameters}")
-        print("==============================================================")
-        self.single_neuron_correlations = self.df_corrs.max(axis=1).values
-        self.single_neuron_correlations = self.single_neuron_correlations.reshape(
-            self.neuron_count, 1
-        )
-        self.results = np.hstack(
-            (self.neurons, self.hyperparameters, self.single_neuron_correlations)
-        )
-        self.avg_correlation = self.single_neuron_correlations.mean()
-        if self.report:
-            np.save(self.report_dir / "hyperparametersearch_report.npy", self.results)
-            with open(self.report_dir / "report.md", "w") as f:
-                f.write(
-                    (
-                        "# Readme\n"
-                        "hyperparametersearch_report.npy contains a 2D array, "
-                        "where column one represents the the neurons, column "
-                        "two the regularization factor and column three the "
-                        "single neuron correlation of the filter prediction and "
-                        "the real responses.\n"
-                        "# Average correlation\n"
-                        "The best average correlation achieved in this "
-                        "hyperparameter search was "
-                        f"{round(self.avg_correlation*100,2)} %."
-                    )
-                )
+        self._cmp_best(mask)
+        self._reporting()
         return self.results, self.avg_correlation
 
     def get_parameters(self):
@@ -709,73 +649,82 @@ class IndividualHyperparametersearch(Hyperparametersearch):
         return self.hyperparameters
 
 
-class FilterReport:
+class HyperparameterSearchAnalyzer:
     def __init__(self, report_file, counter):
-        self.counter = counter
-        self.report_file = report_file
         (
             cwd,
             reports_dir,
-            fil_type,
+            model_type,
             reg_type,
             date_time,
-            file_name,
-        ) = self.report_file.rsplit("/", 5)
-        self.correlation_file = (
-            Path.cwd()
+            report_file,
+        ) = report_file.rsplit("/", 5)
+        self.report_file_name = report_file
+        self.reg_type = reg_type
+        # # paths in scripts
+        # self.report_path = Path.cwd() / reports_dir / model_type / reg_type / date_time
+        # self.model_path = Path.cwd() / "models" / model_type / date_time / "evaluated_filter.npy"
+        # self.report_figures_path = Path.cwd() / reports_dir / "figures" / model_type / reg_type / date_time
+
+        # paths in ipy usage
+        self.report_path = (
+            Path.cwd().parents[0] / reports_dir / model_type / reg_type / date_time
+        )
+        self.model_path = Path.cwd().parents[0] / "models" / model_type / date_time
+        self.report_figures_path = (
+            Path.cwd().parents[0]
             / reports_dir
-            / fil_type
+            / "figures"
+            / model_type
             / reg_type
             / date_time
-            / "Correlations.csv"
-        )
-        self.report_figure_path = (
-            Path.cwd() / reports_dir / "figures" / fil_type / reg_type / date_time
-        )
-        self.report_figure_path.mkdir(parents=True, exists_ok=True)
-        self.filter_file = (
-            Path.cwd() / "models" / fil_type / date_time / "evaluated_filter.npy"
         )
 
-    def analyze(self, save=True):
-        """Analyze report files.
+        self.report_figures_path.mkdir(parents=True, exist_ok=True)
+        self.report_file = self.report_path / report_file
+        self.model_file = self.model_path / "evaluated_filter.npy"
+        self.counter = counter
 
-        Sorts neuron in descending single neuron correlation order and computes
-        average correlation.
-
-        Args:
-            save (bool, optional): If True, analyzis is stored. Defaults to True.
-        """
-        self.report_data = np.load(self.report_file)
-        df = pd.DataFrame(
-            self.report_data, columns=["Neuron", "RegFactor", "Correlation"]
-        )
-        df.drop(columns=["Correlation"])
-        report_path, _ = self.report_file.rsplit("/", 1)
-        corrs = pd.read_csv(report_path + "/Correlations.csv")
-        corrs_1 = [float(corrs.columns[1])]
-        corrs_1.extend(corrs.iloc[:, 1].to_list())
-        df["Correlation"] = corrs_1
-        df = df.sort_values(["Correlation"], ascending=False, ignore_index=True)
-        self.avg_correlation = df.Correlation.sum() / len(df.Correlation)
-        if save:
-            with open(self.report_path + "/average_correlation.txt", "w") as f:
-                f.write(str(self.avg_correlation))
-            sort = df.values
+    def run(self):
+        self.filter = np.load(self.model_file)
+        self.report = np.load(self.report_file)
+        if self.reg_type == "global_hyperparametersearch":
+            self.df_report = pd.DataFrame(
+                self.report, columns=["Neuron", "RegFactor", "SingleNeuronCorrelation"]
+            )
+        else:
+            # TODO function for individual_hyperparamsearch
+            pass
+        if self.report_file_name == "hyperparametersearch_report.npy":
+            self.df_report = self.df_report.sort_values(
+                "SingleNeuronCorrelation", ascending=False, ignore_index=True
+            )
             np.save(
-                self.report_path + "/hyperparametersearch_report_descending.npy",
-                sort,
+                self.report_path / "hyperparametersearch_report_descending.npy",
+                self.df_report.values,
             )
 
-    def plot_individual(self):
-        """Plots and stores"""
-        self.filter_data = np.load(self.filter_file)
         for i in range(self.counter):
-            corr = self.df.Correlation.iloc[i]
-            neuron = int(self.df.Neuron.iloc[i])
-            fil = self.filter_data[neuron, 0, :, :]
-            plt.imshow(fil)
-            plt.savefig(self.report_figure_path / f"Filter_{i}.png")
+            # pick neuron according to descending order
+            neuron = int(self.df_report.Neuron.iloc[i])
+            correlation = round(self.df_report.SingleNeuronCorrelation[i] * 100, 2)
+            # normalize filter to +-0.5 for visual purposes
+            fil = self.filter[neuron, :, :, :]
+            fil = torch.from_numpy(fil)
+            normer = torchvision.transforms.Normalize(0, 1)
+            fil = normer(fil)
+            fil = norm(fil)
+            fil = fil - 0.5
+            fil = fil.squeeze()
+            # plot visual representation of filter
+            fig, ax = plt.subplots(figsize=figure_sizes["half"])
+            im = ax.imshow(fil)
+            plt.title(f"Neuron: {neuron} | Correlation: {correlation}")
+            fig.colorbar(im, ax=ax, shrink=0.75)
+            plt.savefig(
+                self.report_figures_path / f"{i:03d}Representation_Neuron_{neuron}.png"
+            )
+            plt.close()
 
 
 if __name__ == "__main__":
