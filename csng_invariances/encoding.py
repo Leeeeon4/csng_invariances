@@ -1,6 +1,7 @@
 """Module provding CNN encoding functionality."""
 
 import wandb
+from csng_invariances.utility.ipyhandler import automatic_cwd
 from datasets.lurz2020 import download_lurz2020_data, static_loaders
 from models.discriminator import get_core_trained_model
 from training.trainers import standard_trainer as trainer
@@ -226,7 +227,7 @@ def encode():
         print(f"Running the model on {device} with cuda: {cuda}")
 
         # Load data and model
-        lurz_dir = Path.cwd() / "data" / "external" / "lurz2020"
+        lurz_dir = automatic_cwd() / "data" / "external" / "lurz2020"
         if (lurz_dir / "README.md").is_file() is False:
             download_lurz2020_data()
         # Building Dataloaders
@@ -311,7 +312,7 @@ def evaluate_encoding(model, dataloaders, device, dataset_config):
 if __name__ == "__main__":
     model, dataloaders, device, dataset_config = encode()
     t = str(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
-    model_path = Path.cwd() / "models" / t
+    model_path = automatic_cwd() / "models" / t
     model_path.mkdir(parents=True, exist_ok=True)
     torch.save(model, model_path / "trained_model.pth")
     evaluate_encoding(model, dataloaders, device, dataset_config)

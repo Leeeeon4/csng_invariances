@@ -8,6 +8,7 @@ import datasets.lurz2020 as lu
 import utility.lin_filter as lin_fil
 from utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
 import argparse
+from csng_invariances.utility.ipyhandler import automatic_cwd
 
 
 def get_lurz_dataset():
@@ -18,7 +19,7 @@ def get_lurz_dataset():
     """
     # Load dataset
     experiment_path = str(
-        Path.cwd() / "data" / "external" / "lurz2020" / "static20457-5-9-preproc0"
+        automatic_cwd() / "data" / "external" / "lurz2020" / "static20457-5-9-preproc0"
     )
     print(f"Loading dataset from {experiment_path}.")
     dataloaders, _ = lu.get_dataloaders()
@@ -37,7 +38,7 @@ def get_antolik_dataset(region):
         tuple: Tuple of train_images, train_responses, val_images and val_responses
     """
     # Load dataset
-    experiment_path = Path.cwd() / "data" / "external" / "antolik2016" / "Data"
+    experiment_path = automatic_cwd() / "data" / "external" / "antolik2016" / "Data"
     print(f"Loading data from {experiment_path}.")
     dataloaders = al.get_dataloaders()
     train_images, train_responses = al.get_complete_dataset(

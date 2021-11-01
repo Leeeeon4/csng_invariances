@@ -4,6 +4,8 @@ This module is based on the stackoverflow post:
 https://stackoverflow.com/questions/15411967/how-can-i-check-if-code-is-executed-in-the-ipython-notebook#39662359
 """
 
+from pathlib import Path
+
 # %%
 def isnotebook():
     """Check if code is run as notebook.
@@ -21,3 +23,16 @@ def isnotebook():
             return False  # Other type (?)
     except NameError:
         return False  # Probably standard Python interpreter
+
+
+# %%
+def automatic_cwd():
+    """Adapts a cwd path automatically if it is used in a notebook.
+
+    Args:
+        path (Path): path to adapt
+
+    Returns:
+        path: adapted path
+    """
+    return Path.cwd().parents[0] if isnotebook() else Path.cwd()

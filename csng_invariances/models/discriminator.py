@@ -14,6 +14,7 @@ from neuralpredictors.layers.readouts import (
     MultipleFullSXF,
 )
 from utility.data_helpers import unpack_data_info
+from utility.ipyhandler import automatic_cwd
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
 
@@ -31,7 +32,7 @@ def download_pretrained_lurz_model():
     url = "https://github.com/sinzlab/Lurz_2020_code/raw/main/notebooks/models/transfer_model.pth.tar"
     answer = requests.get(url, allow_redirects=True)
     # make directory
-    file_dir = Path.cwd() / "models" / "external" / "lurz2020"
+    file_dir = automatic_cwd() / "models" / "external" / "lurz2020"
     file_dir.mkdir(parents=True, exist_ok=True)
     # save file
     with open(file_dir / "transfer_model.pth.tar", "wb") as fd:
@@ -70,14 +71,15 @@ def get_core_trained_model(dataloaders):
 
     model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=1)
     # Download pretrained model if not there
-    if (
-        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar"
-    ).is_file() is False:
+
+    model_path = automatic_cwd() / "models" / "external" / "lurz2020"
+    if (model_path / "transfer_model.pth.tar").is_file() is False:
         download_pretrained_lurz_model()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # load model
     transfer_model = torch.load(
-        Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
-        map_location=torch.device("cpu"),
+        model_path / "transfer_model.pth.tar",
+        map_location=device,
     )
     model.load_state_dict(transfer_model, strict=False)
 
@@ -888,7 +890,7 @@ class ExampleDiscriminator(nn.Module):
 
     def _init_layers(self, layers):
         """Initialize the layers and store as self.module_list.
- 
+
         Args:
             layers (List[int]): A list of layer widths including output width.
         """
