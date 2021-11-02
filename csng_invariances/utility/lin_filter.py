@@ -22,8 +22,6 @@ figure_sizes = {
     "half": (5.4, 3.8),
 }
 
-mpl.rc_file((str(Path.cwd() / "matplotlibrc")))
-
 
 def _reshape_filter_2d(fil):
     """Reshape filter to 2D representation

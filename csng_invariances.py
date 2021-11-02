@@ -8,16 +8,6 @@ from rich import print
 from csng_invariances.linear_receptive_field import *
 
 
-def matplotlib_style_setup():
-    # Setup Matplotlib style based on matplotlibrc-file.
-    # If two plot are supposed to fit on one presentation slide, use figsize = figure_sizes["half"]
-    mpl.rc_file("matplotlibrc")
-    figure_sizes = {
-        "full": (8, 5.6),
-        "half": (5.4, 3.8),
-    }
-
-
 def linear_receptive_field_experiments():
     """Run linear receptive field experiment.
 
@@ -135,5 +125,5 @@ if __name__ == "__main__":
     8. Cluster 'most representative/most different' samples
     9. Analyze important samples
     """
-    matplotlib_style_setup()
+    mpl.rc_file(Path.cwd() / "matplotlibrc")
     linear_receptive_field_experiments()

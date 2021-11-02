@@ -17,6 +17,14 @@ csng\_invariances.utility.data\_helpers module
    :undoc-members:
    :show-inheritance:
 
+csng\_invariances.utility.ipyhandler module
+-------------------------------------------
+
+.. automodule:: csng_invariances.utility.ipyhandler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 csng\_invariances.utility.lin\_filter module
 --------------------------------------------
 
