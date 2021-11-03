@@ -20,6 +20,8 @@ from neuralpredictors.training import (
 )
 from nnfabrik.utility.nn_helpers import set_random_seed
 
+import csng_invariances.utility.measures as measures
+
 from csng_invariances.utility.measures import get_correlations, get_poisson_loss
 
 
