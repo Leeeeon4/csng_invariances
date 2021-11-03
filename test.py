@@ -1,10 +1,12 @@
 # %%
 import torch
+import torch.optim as optim
 import wandb
 import datetime
 
 from pathlib import Path
 from rich import print
+from torch import nn
 
 from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.discriminator import (
@@ -128,133 +130,78 @@ torch.save(model.state_dict(), readout_model_path / "Pretrained_core_readout_lur
 # model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
 # model.load_state_dict(torch.load(read_model_path / "Pretrained_core_readout_lurz.pth"))
 # %%
-for imgs, resps in dataloaders["train"]["20457-5-9-0"]:
-    None
+# Batch size during training
+batch_size = 128
 
-# %%
-for i in range(imgs.shape[0]):
-    img = imgs[i, :, :, :]
-    resp = resps[i, :]
-    img = img.reshape(1, 1, 36, 64)
-    prediction = model.forward(img)
-    print(f"Shape of image: {img.shape}")
-    print(f"Shape of prediction: {prediction.shape}")
-    print(f"Shape of response: {resp.shape}")
-    print(f"Summed image: {torch.sum(img)}")
-    print(f"Summed prediction: {torch.sum(prediction)}")
-    print(f"Summed response: {torch.sum(resp)}")
-    print(f"Summed difference: {torch.sum(prediction-resp)}")
-# %%
-dim = tuple(img.shape)
-dim
-# %%
-rand_img = torch.randint(255, dim, device=device, dtype=torch.float)
-# %%
-model.forward(rand_img)
-# %%
-tensor = torch.randn(size=(1, 128), device=device)
-a = torch.nn.ConvTranspose2d(in_channels=1, out_channels=36, kernel_size=(1, 1))
-a(tensor)
-# %%
-from torch import nn
+# Spatial size of training images. All images will be resized to this
+#   size using a transformer.
+image_size = 64
+
+# Number of channels in the training images. For color images this is 3
+nc = 1
+
+# Size of z latent vector (i.e. size of generator input)
+nz = 128
+
+# Size of feature maps in generator
+ngf = 64
+
+# Size of feature maps in discriminator
+ndf = 64
+
+# Number of training epochs
+num_epochs = 5
+
+# Learning rate for optimizers
+lr = 0.0002
+
+# Beta1 hyperparam for Adam optimizers
+beta1 = 0.5
+
+# Number of GPUs available. Use 0 for CPU mode.
+ngpu = 1
+#%%
+# Generator Code
 
 
-class ExampleGenerator(nn.Module):
-    """Create generator model class.
+class Generator(nn.Module):
+    def __init__(self, ngpu):
+        super(Generator, self).__init__()
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(nz, ngf * 8, (4, 4), 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 2), 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 2), 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 2, ngf, (4, 2), 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf, nc, (4, 4), 2, 1, bias=False),
+            nn.Tanh()
+            # state size. (nc) x 64 x 64
+        )
 
-    Create generator model to generate sample form latent space.
-    Model consists of: linear layer, leaky ReLU, linear layer, linear layer,
-    and optionally passed output_activation.
-    This class is based on Lazarou 2020: PyTorch and GANs: A Micro Tutorial.
-    tutorial, which can be found at:
-    https://towardsdatascience.com/\
-        pytorch-and-gans-a-micro-tutorial-804855817a6b
-    Most in-line comments are direct quotes from the tutorial. The code is
-    copied and slightly adapted.
-    """
-
-    def __init__(self, latent_dim, output_activation=None):
-        """Instantiates the generator model.
-
-        Args:
-            latent_dim (int): Dimension of the latent space tensor.
-            output_activation (torch.nn activation funciton, optional):
-                activation function to use. Defaults to None.
-        """
-        super().__init__()
-        # TODO Output dimension
-        self.latent_dim = latent_dim
-        self.linear1 = nn.Linear(self.latent_dim, 64)
-        self.leaky_relu = nn.LeakyReLU()
-        self.linear2 = nn.Linear(64, 32)
-        self.linear3 = nn.Linear(32, 1)
-
-        self.output_activation = output_activation
-
-    def forward(self, input_tensor):
-        """Forward pass.
-
-        Defines the forward pass through the generator model.
-        Maps the latent vector to samples.
-
-        Args:
-            input_tensor (torch.Tensor): tensor which is input
-                into the generator model.
-
-        Returns:
-            torch.Tensor: Output tensor after the forward pass.
-        """
-        # TODO Output dimension
-        intermediate = self.linear1(input_tensor)
-        intermediate = self.leaky_relu(intermediate)
-        intermediate = self.linear2(intermediate)
-        intermediate = self.leaky_relu(intermediate)
-        intermediate = self.linear3(intermediate)
-        if self.output_activation is not None:
-            intermediate = self.output_activation(intermediate)
-        return intermediate
-
-    def generate_batch(
-        self, distribution="normal", mean=0, sdv=1, width=2, batch_size=64
-    ):
-        """Generate a batch of samples.
-
-        Args:
-            distribution (str, optional): Type of distribution to sample from,
-                option are: "normal", "uniform". Defaults to "normal".
-            mean (float, optional): Mean of distribution.
-                Defaults to 0.
-            sdv (float, optional): Standard deviation of normal distribution.
-                Defaults to 1.
-            width (float, optional): Total width of uniform distribution.
-                I.e. a width of 2 means 1 above mean and 1 below. Defaults to 2.
-            batch_size (int, optional): Batch size. Defaults to 64.
-
-        Returns:
-            Tensor: Sampletensor of dimension (batch_size, latent_dim)
-        """
-        assert (
-            distribution is "normal" or "uniform"
-        ), "Distribution type unknown. Did you mean 'normal' or 'uniform'?"
-        self.distribution = distribution
-        self.mean = mean
-        self.sdv = sdv
-        self.width = width
-        self.batch_size = batch_size
-        if self.distribution is "normal":
-            self.batch_tensor = torch.normal(
-                mean=self.mean, std=self.sdv, size=(self.batch_size, self.latent_dim)
-            )
-        elif self.distribution is "uniform":
-            batch_tensor = torch.rand(size=(self.batch_size, self.latent_dim))
-            self.batch_tensor = batch_tensor.add((self.mean - 1) / 2) * self.width
-        return self.batch_tensor
+    def forward(self, input):
+        return self.main(input)
 
 
 # %%
-import torch.optim as optim
-
-
+tensor = torch.randn(64, nz, 1, 1)
+# %%
+mod = Generator(1)
+fw = mod.forward(tensor)
+fw.shape
+# %%
 class ExampleGAN:
     """Create gan model class.
 
