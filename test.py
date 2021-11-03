@@ -174,15 +174,15 @@ class Generator(nn.Module):
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 2), 2, 1, bias=False),
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, (2, 4), 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 2), 2, 1, bias=False),
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, (2, 4), 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(ngf * 2, ngf, (4, 2), 2, 1, bias=False),
+            nn.ConvTranspose2d(ngf * 2, ngf, (2, 4), 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
@@ -196,11 +196,21 @@ class Generator(nn.Module):
 
 
 # %%
-tensor = torch.randn(64, nz, 1, 1)
+tensor = torch.randn(64, nz, 1, 1, dtype=torch.float, device=device)
+# output dim if flattened
+a = nn.ConvTranspose2d(nz, 1, (36, 64)).to(device)
 # %%
-mod = Generator(1)
+n = a(tensor)
+n.shape
+# %%
+mod = Generator(1).to(device)
 fw = mod.forward(tensor)
 fw.shape
+# %%
+fw = torch.randn(64, 1, 36, 64, dtype=torch.float, device=device)
+# %%
+res = model.forward(fw)
+res.shape
 # %%
 class ExampleGAN:
     """Create gan model class.

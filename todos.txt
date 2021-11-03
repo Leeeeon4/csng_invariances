@@ -1,3 +1,7 @@
+# current
+TODO generator always between 0 and 1 - normalize before passing to encoding model
+TODO trainer for generator training
+
 # Must be done
 TODO train readout Antolikdata (either learn gaussian or use other readout)
 TODO Linear filter analysis
