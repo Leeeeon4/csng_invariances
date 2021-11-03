@@ -1,6 +1,4 @@
 # %%
-from random import randint
-from numpy.core.fromnumeric import size
 import torch
 import wandb
 
@@ -110,9 +108,9 @@ model.load_state_dict(transfer_model, strict=False)
 print(f"Running current training config:\n{trainer_config}")
 wandb.init()
 config = wandb.config
-kwargs = dict(dataset_config, **model_config).update(trainer_config)
+kwargs = dict(dataset_config, **model_config)
+kwargs.update(trainer_config)
 config.update(kwargs)
-print(kwargs)
 score, output, model_state = lurz_trainer(
     model=model, dataloaders=dataloaders, **trainer_config
 )
