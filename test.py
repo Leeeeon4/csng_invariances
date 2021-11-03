@@ -1,10 +1,10 @@
 # %%
 import torch
 import wandb
+import datetime
 
 from pathlib import Path
 from rich import print
-import wandb
 
 from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.discriminator import (
@@ -97,14 +97,18 @@ print(f"Running current dataset config:\n{dataset_config}")
 dataloaders = static_loaders(**dataset_config)
 # %%
 print(f"Running current model config:\n{model_config}")
+# build model
 model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
+# load state_dict of pretrained core
 transfer_model = torch.load(
     Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
-    map_location=torch.device("cpu"),
+    map_location=device,
 )
 model.load_state_dict(transfer_model, strict=False)
-
 # %%
+transfer_model
+# %%
+# Training readout
 print(f"Running current training config:\n{trainer_config}")
 wandb.init()
 config = wandb.config
@@ -114,7 +118,15 @@ config.update(kwargs)
 score, output, model_state = lurz_trainer(
     model=model, dataloaders=dataloaders, **trainer_config
 )
-
+# %%
+# Saving model (core + readout)
+t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+readout_model_path = Path.cwd() / "models" / "encoding" / t
+readout_model_path.mkdir(parents=True, exist_ok=True)
+torch.save(model.state_dict(), readout_model_path / "Pretrained_core_readout_lurz.pth")
+# to load:
+# model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
+# model.load_state_dict(torch.load(read_model_path / "Pretrained_core_readout_lurz.pth"))
 # %%
 for imgs, resps in dataloaders["train"]["20457-5-9-0"]:
     None
