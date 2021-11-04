@@ -16,13 +16,15 @@ from csng_invariances.models.discriminator import (
     se2d_fullgaussian2d,
 )
 from csng_invariances.training.trainers import standard_trainer as lurz_trainer
+from csng_invariances.utility.data_helpers import save_configs, load_configs
+from csng_invariances.utility.measures import get_correlations, get_fraction_oracles
 
 
 def encode():
-    """Wrap training.
+    """Encode and evaluate model.
 
     Returns:
-        tuple: tuple of model, dataloaders, device, dataset_config
+        model: Trained encoding model.
     """
 
     def dataset_parser():
@@ -265,7 +267,8 @@ def encode():
                 Defaults to 200.
 
         Returns:
-            tuple: tuple of (model, dataloaders, device, dataset_config)
+            tuple: tuple of (model, dataloaders, configs), where configs is a
+                dict of sub_config dicts.
         """
         assert lr_decay_factor <= 1, "lr_decay_factor must be less than 1."
         if device is None:
@@ -275,10 +278,11 @@ def encode():
             print(f"Running the model on {device} with cuda: {cuda}")
 
         # settings
-        lurz_data_path = Path.cwd() / "data" / "external" / "lurz2020"
-        lurz_model_path = Path.cwd() / "models" / "external" / "lurz2020"
+        lurz_data_directory = Path.cwd() / "data" / "external" / "lurz2020"
+        lurz_model_directory = Path.cwd() / "models" / "external" / "lurz2020"
+        lurz_model_path = lurz_model_directory / "transfer_model.pth.tar"
         dataset_config = {
-            "paths": [str(lurz_data_path / "static20457-5-9-preproc0")],
+            "paths": [str(lurz_data_directory / "static20457-5-9-preproc0")],
             "batch_size": batch_size,
             "seed": seed,
             "cuda": cuda,
@@ -329,10 +333,10 @@ def encode():
 
         # Download data and model if necessary
         download_lurz2020_data() if (
-            lurz_data_path / "README.md"
+            lurz_data_directory / "README.md"
         ).is_file() is False else None
         download_pretrained_lurz_model() if (
-            lurz_model_path / "transfer_model.pth.tar"
+            lurz_model_path
         ).is_file() is False else None
 
         # Load data
@@ -345,7 +349,7 @@ def encode():
         model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
         # load state_dict of pretrained core
         transfer_model = torch.load(
-            Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
+            lurz_model_path,
             map_location=device,
         )
         model.load_state_dict(transfer_model, strict=False)
@@ -357,26 +361,26 @@ def encode():
         kwargs = dict(dataset_config, **model_config)
         kwargs.update(trainer_config)
         config.update(kwargs)
-        score, output, model_state = lurz_trainer(
-            model=model, dataloaders=dataloaders, **trainer_config
-        )
+        lurz_trainer(model=model, dataloaders=dataloaders, **trainer_config)
 
         # Saving model (core + readout)
         t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        readout_model_path = Path.cwd() / "models" / "encoding" / t
-        readout_model_path.mkdir(parents=True, exist_ok=True)
+        readout_model_directory = Path.cwd() / "models" / "encoding" / t
+        readout_model_directory.mkdir(parents=True, exist_ok=True)
         torch.save(
-            model.state_dict(), readout_model_path / "Pretrained_core_readout_lurz.pth"
+            model.state_dict(),
+            readout_model_directory / "Pretrained_core_readout_lurz.pth",
         )
-        print(f"Model state dict is stored at {readout_model_path}")
-        # TODO Store configs as json?
-        # to load:
-        # model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
-        # model.load_state_dict(torch.load(read_model_path / "Pretrained_core_readout_lurz.pth"))
+        configs = {
+            "dataset_config": dataset_config,
+            "model_config": model_config,
+            "trainer_config": trainer_config,
+        }
+        save_configs(configs, readout_model_directory)
+        print(f"Model and configs are stored at {readout_model_directory}")
+        return model, dataloaders, configs
 
-        return model, dataloaders, device, dataset_config
-
-    def evaluate_lurz_readout_encoding(model, dataloaders, device, dataset_config):
+    def evaluate_lurz_readout_encoding(model, dataloaders, configs):
         """Evalutes the trained encoding model.
 
         Args:
@@ -386,8 +390,9 @@ def encode():
             device (str): String of device to use for computation
             dataset_config (dict): dict of dataset options
         """
+        dataset_config = configs["dataset_config"]
+        device = configs["trainer_config"]["device"]
         # Performane
-        from utility.measures import get_correlations, get_fraction_oracles
 
         train_correlation = get_correlations(
             model, dataloaders["train"], device=device, as_dict=False, per_neuron=False
@@ -422,26 +427,30 @@ def encode():
     dataset_kwargs = dataset_parser()
     sweep_kwargs = sweep_parser()
     if vars(dataset_kwargs)["dataset"] is "Lurz":
-        model, dataloaders, device, dataset_config = train_lurz_readout_encoding(
-            **vars(sweep_kwargs)
-        )
-        evaluate_lurz_readout_encoding(model, dataloaders, device, dataset_config)
-    return model, dataloaders, device, dataset_config
+        model, dataloaders, configs = train_lurz_readout_encoding(**vars(sweep_kwargs))
+        evaluate_lurz_readout_encoding(model, dataloaders, configs)
+    return model
 
 
 def load_encoding_model():
+    """Load pretrained encoding model.
+
+    Returns:
+        model: Trained encoding model.
+    """
+
     def load_parser():
-        """Handle encoding model path parsing.
+        """Handle encoding model directory parsing.
 
         Returns:
-            str: Model path.
+            str: Model directory.
         """
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "--encoding_model_path",
             type=str,
             help=(
-                "Path to the trained encoding model. Recall, the model must "
+                "Directory of the trained encoding model. Recall, the model must "
                 "fit to the dataset, as the readout is dataset specific."
             ),
         )
@@ -451,12 +460,19 @@ def load_encoding_model():
         assert file_type is "pth", "Not a path to a model file."
         return path
 
-    path = load_parser()
-    model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
-    model.load_state_dict(
-        torch.load(read_model_path / "Pretrained_core_readout_lurz.pth")
+    model_directory = load_parser()
+    configs = load_configs(model_directory)
+    dataloaders = static_loaders(**configs["dataset_config"])
+    model = se2d_fullgaussian2d(
+        **configs["model_config"],
+        dataloaders=dataloaders,
+        seed=configs["dataset_config"]["seed"],
     )
+    model.load_state_dict(
+        torch.load(model_directory / "Pretrained_core_readout_lurz.pth")
+    )
+    return model
 
 
 if __name__ == "__main__":
-    model, dataloaders, device, dataset_config = encode()
+    model, dataloaders, configs = encode()
