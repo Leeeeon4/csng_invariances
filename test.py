@@ -14,7 +14,11 @@ from csng_invariances.models.discriminator import (
     se2d_fullgaussian2d,
 )
 from csng_invariances.training.trainers import standard_trainer as lurz_trainer
+from csng_invariances.utility.data_helpers import save_configs, load_configs
 
+#%%
+d = {"dataset": "Lurz"}
+d["dataset"]
 
 # %%
 # to be done by argparsing
@@ -36,10 +40,11 @@ cuda = False if str(device) == "cpu" else True
 
 # %%
 # Settings
-lurz_data_path = Path.cwd() / "data" / "external" / "lurz2020"
-lurz_model_path = Path.cwd() / "models" / "external" / "lurz2020"
+lurz_data_directory = Path.cwd() / "data" / "external" / "lurz2020"
+lurz_model_directory = Path.cwd() / "models" / "external" / "lurz2020"
+lurz_model_path = lurz_model_directory / "transfer_model.pth.tar"
 dataset_config = {
-    "paths": [str(lurz_data_path / "static20457-5-9-preproc0")],
+    "paths": [str(lurz_data_directory / "static20457-5-9-preproc0")],
     "batch_size": batch_size,
     "seed": seed,
     "cuda": cuda,
@@ -87,12 +92,26 @@ trainer_config = {
     "interval": interval,
     "patience": patience,
 }
+configs = {
+    "dataset_config": dataset_config,
+    "model_config": model_config,
+    "trainer_config": trainer_config,
+}
+# %%
+t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+readout_model_directory = Path.cwd() / "models" / "encoding" / t
+readout_model_directory.mkdir(parents=True, exist_ok=True)
+
+save_configs(configs, readout_model_directory)
+# directory = "/home/leon/csng_invariances/models/encoding/2021-11-04_10:15:53"
+configs = load_configs(readout_model_directory)
+print(configs)
 # %%
 # Load data and model
-download_lurz2020_data() if (lurz_data_path / "README.md").is_file() is False else None
-download_pretrained_lurz_model() if (
-    lurz_model_path / "transfer_model.pth.tar"
+download_lurz2020_data() if (
+    lurz_data_directory / "README.md"
 ).is_file() is False else None
+download_pretrained_lurz_model() if (lurz_model_path).is_file() is False else None
 
 # %%
 print(f"Running current dataset config:\n{dataset_config}")
@@ -102,10 +121,7 @@ print(f"Running current model config:\n{model_config}")
 # build model
 model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
 # load state_dict of pretrained core
-transfer_model = torch.load(
-    Path.cwd() / "models" / "external" / "lurz2020" / "transfer_model.pth.tar",
-    map_location=device,
-)
+transfer_model = torch.load(lurz_model_path, map_location=device)
 model.load_state_dict(transfer_model, strict=False)
 # %%
 transfer_model
@@ -122,10 +138,9 @@ score, output, model_state = lurz_trainer(
 )
 # %%
 # Saving model (core + readout)
-t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-readout_model_path = Path.cwd() / "models" / "encoding" / t
-readout_model_path.mkdir(parents=True, exist_ok=True)
-torch.save(model.state_dict(), readout_model_path / "Pretrained_core_readout_lurz.pth")
+torch.save(
+    model.state_dict(), readout_model_directory / "Pretrained_core_readout_lurz.pth"
+)
 # to load:
 # model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
 # model.load_state_dict(torch.load(read_model_path / "Pretrained_core_readout_lurz.pth"))

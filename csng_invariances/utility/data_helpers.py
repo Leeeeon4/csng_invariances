@@ -4,6 +4,7 @@
 import numpy as np
 import torch
 import torch.utils.data as utils
+import json
 
 from neuralpredictors.data.samplers import RepeatsBatchSampler
 from pathlib import Path
@@ -123,3 +124,37 @@ def unpack_data_info(data_info):
     input_channels = [v["input_channels"] for k, v in data_info.items()]
     n_neurons_dict = {k: v["output_dimension"] for k, v in data_info.items()}
     return n_neurons_dict, in_shapes_dict, input_channels
+
+
+def save_configs(configs, model_directory):
+    """Save configurations dicts as json.
+
+    Args:
+        configs (dict): Dictionary of sub_config dicts.
+        model_directory (path): path to directory in which model is stored.
+    """
+    configs["trainer_config"]["device"] = str(configs["trainer_config"]["device"])
+    for key, value in configs.items():
+        with open(model_directory / f"{key}.json", "w") as outfile:
+            json.dump(value, outfile, indent=2)
+
+
+def load_configs(model_directory):
+    """Load configs in given directory.
+
+    Args:
+        model_directory (path): Path to directory in which model is stored.
+
+    Returns:
+        dict: Dictionary of sub_config dicts.
+    """
+    configs = {}
+    for file in Path(model_directory).iterdir():
+        print(file)
+        with open(file, "r") as content:
+            configs[file.stem] = json.load(content)
+    print(configs["trainer_config"]["device"])
+    configs["trainer_config"]["device"] = torch.device(
+        "cuda" if configs["trainer_config"]["device"] == "cuda" else "cpu"
+    )
+    return configs
