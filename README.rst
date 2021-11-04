@@ -4,9 +4,6 @@ CSNG: Finding Invariances in Sensory Coding
 
 CSNG: Finding Invariances in Sensory Coding contains source code for invariance detection in sensory coding.
 
-.. image:: https://img.shields.io/pypi/v/csng_invariances.svg
-   :target: https://pypi.python.org/pypi/csng_invariances/
-
 .. image:: https://img.shields.io/pypi/l/csng_invariances.svg
    :target: https://pypi.python.org/pypi/csng_invariances/
 
@@ -16,8 +13,7 @@ CSNG: Finding Invariances in Sensory Coding contains source code for invariance 
 .. image:: https://readthedocs.org/projects/csng_invariances/badge/?version=latest
    :target: https://csng_invariances.readthedocs.io/?badge=latest
 
-.. image:: https://app.travis-ci.com/Leeeeon4/csng_invariances.svg?branch=master
-   :target: https://app.travis-ci.com/Leeeeon4/csng_invariances
+
 
 * Free software: MIT license
 * Repository: https://github.com/Leeeeon4/csng_invariances

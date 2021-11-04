@@ -21,112 +21,116 @@ from csng_invariances.utility.data_helpers import save_configs, load_configs
 from csng_invariances.utility.measures import get_correlations, get_fraction_oracles
 
 
-def encode():
+def encoding_parser():
+    """Handle argparsing of encoding sweeps.
+
+    Returns:
+        namespace: Namespace of parsed encoding arguments.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="Lurz",
+        help=(
+            "Specify the dataset to analyze. Options are 'Lurz' and "
+            "'Antolik'. Defaults to 'Lurz'."
+        ),
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help=(
+            "Set device if automatic reading of device is not wanted. "
+            "Options: 'cpu', 'cuda'. Defaults to reading from system."
+        ),
+    )
+    parser.add_argument(
+        "--seed", type=int, default=1, help=("Seed for randomness. Defaults to 1.")
+    )
+    parser.add_argument(
+        "--detach_core",
+        type=bool,
+        default=True,
+        help=("If True, the core will not be fine-tuned. Defaults to True."),
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=64,
+        help=("Size of batches. Defaults to 64."),
+    )
+    parser.add_argument(
+        "--lr_init",
+        type=float,
+        default=0.005,
+        help=("Initial learning rate. Defaults to 0.005."),
+    )
+    parser.add_argument(
+        "--lr_decay_steps",
+        type=int,
+        default=3,
+        help=(
+            "How many times to decay the learning rate after no improvement. "
+            "Defaults to 3."
+        ),
+    )
+    parser.add_argument(
+        "--lr_decay_factor",
+        type=float,
+        default=0.3,
+        help=("Factor to decay the learning rate with. Defaults to 0.3."),
+    )
+    parser.add_argument(
+        "--min_lr",
+        type=float,
+        default=0.0001,
+        help=("minimum learning rate. Defaults to 0.005."),
+    )
+    parser.add_argument(
+        "--max_iter",
+        type=int,
+        default=200,
+        help=("Maximum number of training iterations. Defaults to 200."),
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=1,
+        help=(
+            "Interval at which objective is evaluated to consider early "
+            "stopping. Defaults to 1."
+        ),
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=5,
+        help=(
+            "Number of times the objective is allowed to not become better "
+            "before the iterator terminates. Defaults to 5."
+        ),
+    )
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=1e-6,
+        help=("Tolerance for early stopping. Defaults to 1e-6."),
+    )
+    kwargs = parser.parse_args()
+    return kwargs
+
+
+def encode(parsed_kwargs):
     """Encode and evaluate model.
+
+    Args:
+        parsed_kwargs (namespace): Namespace of parsed config arguments.
 
     Returns:
         model: Trained encoding model.
     """
-
-    def encoding_parser():
-        """Handle argparsing of encoding sweeps.
-
-        Returns:
-            namespace: Namespace of parsed encoding arguments.
-        """
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--dataset",
-            type=str,
-            default="Lurz",
-            help=(
-                "Specify the dataset to analyze. Options are 'Lurz' and "
-                "'Antolik'. Defaults to 'Lurz'."
-            ),
-        )
-        parser.add_argument(
-            "--device",
-            type=str,
-            default=None,
-            help=(
-                "Set device if automatic reading of device is not wanted. "
-                "Options: 'cpu', 'cuda'. Defaults to reading from system."
-            ),
-        )
-        parser.add_argument(
-            "--seed", type=int, default=1, help=("Seed for randomness. Defaults to 1.")
-        )
-        parser.add_argument(
-            "--detach_core",
-            type=bool,
-            default=True,
-            help=("If True, the core will not be fine-tuned. Defaults to True."),
-        )
-        parser.add_argument(
-            "--batch_size",
-            type=int,
-            default=64,
-            help=("Size of batches. Defaults to 64."),
-        )
-        parser.add_argument(
-            "--lr_init",
-            type=float,
-            default=0.005,
-            help=("Initial learning rate. Defaults to 0.005."),
-        )
-        parser.add_argument(
-            "--lr_decay_steps",
-            type=int,
-            default=3,
-            help=(
-                "How many times to decay the learning rate after no improvement. "
-                "Defaults to 3."
-            ),
-        )
-        parser.add_argument(
-            "--lr_decay_factor",
-            type=float,
-            default=0.3,
-            help=("Factor to decay the learning rate with. Defaults to 0.3."),
-        )
-        parser.add_argument(
-            "--min_lr",
-            type=float,
-            default=0.0001,
-            help=("minimum learning rate. Defaults to 0.005."),
-        )
-        parser.add_argument(
-            "--max_iter",
-            type=int,
-            default=200,
-            help=("Maximum number of training iterations. Defaults to 200."),
-        )
-        parser.add_argument(
-            "--interval",
-            type=int,
-            default=1,
-            help=(
-                "Interval at which objective is evaluated to consider early "
-                "stopping. Defaults to 1."
-            ),
-        )
-        parser.add_argument(
-            "--patience",
-            type=int,
-            default=5,
-            help=(
-                "Number of times the objective is allowed to not become better "
-                "before the iterator terminates. Defaults to 5."
-            ),
-        )
-        parser.add_argument(
-            "--tolerance",
-            type=float,
-            default=1e-6,
-            help=("Tolerance for early stopping. Defaults to 1e-6."),
-        )
-        kwargs = parser.parse_args()
-        return kwargs
 
     def train_lurz_readout_encoding(
         seed,
@@ -438,42 +442,40 @@ def encode():
         print("-----------------------------------------")
         print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
 
-    kwargs = encoding_parser()
-    if vars(kwargs)["dataset"] == "Lurz":
-        model, dataloaders, configs = train_lurz_readout_encoding(**vars(kwargs))
+    if vars(parsed_kwargs)["dataset"] == "Lurz":
+        model, dataloaders, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
         evaluate_lurz_readout_encoding(model, dataloaders, configs)
     return model
 
 
-def load_encoding_model():
+def load_parser():
+    """Handle encoding model directory parsing.
+
+    Returns:
+        str: Model directory.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--encoding_model_directory",
+        type=str,
+        help=(
+            "Directory of the trained encoding model. Recall, the model must "
+            "fit to the dataset, as the readout is dataset specific."
+        ),
+    )
+    kwargs = parser.parse_args()
+    return vars(kwargs)["encoding_model_directory"]
+
+
+def load_encoding_model(model_directory):
     """Load pretrained encoding model.
+
+    Args:
+        model_directory (str): path to model directory to load from.
 
     Returns:
         model: Trained encoding model.
     """
-
-    def load_parser():
-        """Handle encoding model directory parsing.
-
-        Returns:
-            str: Model directory.
-        """
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--encoding_model_path",
-            type=str,
-            help=(
-                "Directory of the trained encoding model. Recall, the model must "
-                "fit to the dataset, as the readout is dataset specific."
-            ),
-        )
-        kwargs = parser.parse_args()
-        path = vars(kwargs)["encoding_model_path"]
-        _, file_type = path.rsplit(".", 1)
-        assert file_type is "pth", "Not a path to a model file."
-        return path
-
-    model_directory = load_parser()
     configs = load_configs(model_directory)
     dataloaders = static_loaders(**configs["dataset_config"])
     model = se2d_fullgaussian2d(
@@ -488,4 +490,4 @@ def load_encoding_model():
 
 
 if __name__ == "__main__":
-    encode()
+    pass
