@@ -5,6 +5,7 @@ import torch
 import torch.optim as optim
 import argparse
 import datetime
+import json
 
 from rich import print
 from pathlib import Path
@@ -27,11 +28,11 @@ def encode():
         model: Trained encoding model.
     """
 
-    def dataset_parser():
-        """Handle argparsing of dataset.
+    def encoding_parser():
+        """Handle argparsing of encoding sweeps.
 
         Returns:
-            namespace: Namespace of parsed dataset arguments.
+            namespace: Namespace of parsed encoding arguments.
         """
         parser = argparse.ArgumentParser()
         parser.add_argument(
@@ -43,16 +44,6 @@ def encode():
                 "'Antolik'. Defaults to 'Lurz'."
             ),
         )
-        kwargs = parser.parse_args()
-        return kwargs
-
-    def sweep_parser():
-        """Handle argparsing of encoding sweeps.
-
-        Returns:
-            namespace: Namespace of parsed encoding arguments.
-        """
-        parser = argparse.ArgumentParser()
         parser.add_argument(
             "--device",
             type=str,
@@ -340,11 +331,13 @@ def encode():
         ).is_file() is False else None
 
         # Load data
-        print(f"Running current dataset config:\n{dataset_config}")
+        print(
+            f"Running current dataset config:\n{json.dumps(dataset_config, indent=2)}"
+        )
         dataloaders = static_loaders(**dataset_config)
 
         # Model setup
-        print(f"Running current model config:\n{model_config}")
+        print(f"Running current model config:\n{json.dumps(model_config, indent=2)}")
         # build model
         model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
         # load state_dict of pretrained core
@@ -355,7 +348,11 @@ def encode():
         model.load_state_dict(transfer_model, strict=False)
 
         # Training readout
-        print(f"Running current training config:\n{trainer_config}")
+        print_trainer_config = trainer_config
+        print_trainer_config["device"] = str(print_trainer_config["device"])
+        print(
+            f"Running current training config:\n{json.dumps(print_trainer_config, indent=2)}"
+        )
         wandb.init(project="invariances_encoding_LurzModel", entity="csng-cuni")
         config = wandb.config
         kwargs = dict(dataset_config, **model_config)
@@ -377,11 +374,28 @@ def encode():
             "trainer_config": trainer_config,
         }
         save_configs(configs, readout_model_directory)
+        encoding_report_directory = Path.cwd() / "reports" / "encoding"
+        encoding_report_path = encoding_report_directory / "readme.md"
+        if encoding_report_path.is_file() is False:
+            encoding_report_directory.mkdir(parents=True, exist_ok=True)
+            with open(encoding_report_path, "w") as file:
+                file.write(
+                    "# Encoding\n"
+                    "Encoding training was tracked using weights and biases. "
+                    "Reports may be found at:\n"
+                    "https://wandb.ai/csng-cuni/invariances_encoding_LurzModel\n"
+                    "Reports are only accessible to members of the csng_cuni "
+                    "group."
+                )
         print(f"Model and configs are stored at {readout_model_directory}")
         return model, dataloaders, configs
 
     def evaluate_lurz_readout_encoding(model, dataloaders, configs):
         """Evalutes the trained encoding model.
+
+        This functions is based on the sourcecode provided in the example
+        notebook of Lurz et al. 2021: Generalization in Data-driven Models of
+        Primary Visual Cortex.
 
         Args:
             model (Encoder): torch.nn.Module inherited class Encoder.
@@ -424,10 +438,9 @@ def encode():
         print("-----------------------------------------")
         print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
 
-    dataset_kwargs = dataset_parser()
-    sweep_kwargs = sweep_parser()
-    if vars(dataset_kwargs)["dataset"] is "Lurz":
-        model, dataloaders, configs = train_lurz_readout_encoding(**vars(sweep_kwargs))
+    kwargs = encoding_parser()
+    if vars(kwargs)["dataset"] == "Lurz":
+        model, dataloaders, configs = train_lurz_readout_encoding(**vars(kwargs))
         evaluate_lurz_readout_encoding(model, dataloaders, configs)
     return model
 
@@ -475,4 +488,4 @@ def load_encoding_model():
 
 
 if __name__ == "__main__":
-    model, dataloaders, configs = encode()
+    encode()

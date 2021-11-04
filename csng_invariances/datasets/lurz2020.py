@@ -30,7 +30,7 @@ from csng_invariances.utility.data_helpers import (
 
 
 def download_lurz2020_data():
-    """Download and unzip Lurz et al. 2020 dataset
+    """Download and unzip Lurz et al. 2021 dataset
 
     Returns:
         pathlib.PurePath: Path to unzipped data.
