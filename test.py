@@ -1,4 +1,7 @@
 # %%
+from neuro_data.static_images import transforms
+
+# %%
 import torch
 import torch.optim as optim
 import wandb
