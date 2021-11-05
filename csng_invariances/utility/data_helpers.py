@@ -150,10 +150,9 @@ def load_configs(model_directory):
     """
     configs = {}
     for file in Path(model_directory).iterdir():
-        print(file)
-        with open(file, "r") as content:
-            configs[file.stem] = json.load(content)
-    print(configs["trainer_config"]["device"])
+        if file.suffix == ".json":
+            with open(file, "r") as content:
+                configs[file.stem] = json.load(content)
     configs["trainer_config"]["device"] = torch.device(
         "cuda" if configs["trainer_config"]["device"] == "cuda" else "cpu"
     )

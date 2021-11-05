@@ -484,7 +484,7 @@ def load_encoding_model(model_directory):
         seed=configs["dataset_config"]["seed"],
     )
     model.load_state_dict(
-        torch.load(model_directory / "Pretrained_core_readout_lurz.pth")
+        torch.load(Path(model_directory) / "Pretrained_core_readout_lurz.pth")
     )
     return model
 
