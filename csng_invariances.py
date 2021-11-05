@@ -112,16 +112,32 @@ def linear_receptive_field_experiments():
 
 
 if __name__ == "__main__":
-    """Concept:
-    1. Train discriminator of data
-    2. Compute Predictions:
-    - discriminator Predictions
-    - linear Predictions
+    """Concept of experiments.
+
+    1. Compute Predictions and single neuron correlations:
+        - discriminator Predictions - r_CNN:
+            possibly train discriminator (encoding model) on data
+        - linear Predictions - r_RF:
+            (X.T*X + lambda*L)^-1 * X.T * y
+            X: images
+            lambda: regularization factor
+            L: regularization
+            y: responses
     3. Compute score
-    4. Compute MEI
-    5. Compute ROI
-    6. Train generator n(0,1), generator would need to genereate coordinates for example images as well?
-    7. Generate Samples u(-2,2)
+        (1 - r_RF)*r_CNN
+    4. Compute Most Exciting Image:
+        - gradient ascent:
+            - apply gradient on image
+                -  initial image is gaussian white noise
+            - gaussian blur application after each gradient ascent step with
+              decreasing standard deviation
+            - low pass filtering - in fourier domain - of gradient before application
+    5. Train generator:
+        - train generator model on: n(0,1)
+        - maximize neural activation of selected neurons
+    6. Generate Samples:
+        - from: u(-2,2)
+    7. Compute and apply ROI
     8. Cluster 'most representative/most different' samples
     9. Analyze important samples
     """
