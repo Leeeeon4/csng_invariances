@@ -470,11 +470,15 @@ def load_parser():
 def load_encoding_model(model_directory):
     """Load pretrained encoding model.
 
+    Loads an encoding model which was pretrained for a specific dataset. The
+    model is return in eval model. I.e. dropout and other things are deactivated
+    which cause inference.
+
     Args:
         model_directory (str): path to model directory to load from.
 
     Returns:
-        model: Trained encoding model.
+        model: Trained encoding model in evaluation state.
     """
     configs = load_configs(model_directory)
     dataloaders = static_loaders(**configs["dataset_config"])
@@ -486,6 +490,7 @@ def load_encoding_model(model_directory):
     model.load_state_dict(
         torch.load(Path(model_directory) / "Pretrained_core_readout_lurz.pth")
     )
+    model.eval()
     return model
 
 
