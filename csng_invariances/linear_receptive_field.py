@@ -176,7 +176,4 @@ def linear_receptive_field_argparse(parser):
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # kwargs = linear_receptive_field_argparse()
-    # evaluate_reports(**vars(kwargs))
     pass

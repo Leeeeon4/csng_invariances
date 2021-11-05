@@ -116,6 +116,9 @@ def get_complete_dataset(dataloaders, key="train", dataset_name="20457-5-9-0"):
     return images_tensor, responses_tensor
 
 
+# TODO def get_images_responses():
+
+
 def static_loader(
     path,
     batch_size,

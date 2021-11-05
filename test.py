@@ -1,11 +1,12 @@
 # %%
-from neuro_data.static_images import transforms
-
-# %%
 import torch
+from torch import cuda
+from torch._C import import_ir_module
 import torch.optim as optim
+from torch.utils.data import dataloader
 import wandb
 import datetime
+import numpy as np
 
 from pathlib import Path
 from rich import print
@@ -21,10 +22,63 @@ from csng_invariances.utility.data_helpers import save_configs, load_configs
 from csng_invariances.encoding import *
 
 # %%
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 encoding_model = load_encoding_model(
     "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
 )
+encoding_model.to(device)
 # %%
+from csng_invariances.datasets.lurz2020 import get_complete_dataset, static_loaders
+
+configs = load_configs(
+    "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
+)
+dataset_config = configs["dataset_config"]
+dataloaders = static_loaders(**dataset_config)
+images, responses = get_complete_dataset(dataloaders)
+images = images[0:64, :, :, :]
+responses = responses[0:64, :]
+# %%
+def get_single_neuron_correlaition(model, images, responses):
+    predictions = model.forward(images.to(device))
+    single_neuron_correlations = torch.empty(
+        size=(predictions.shape[0], 1), device="cpu"
+    )
+    for neuron in range(predictions.shape[0]):
+        prediction = predictions[neuron, :].to("cpu").detach().numpy()
+        response = responses[neuron, :].to("cpu").numpy()
+        single_neuron_correlations[neuron] = np.corrcoef(prediction, response)[0, 1]
+    return single_neuron_correlations
+
+
+# %%
+single_neuron_correlaitons = get_single_neuron_correlaition(
+    encoding_model, images, responses
+)
+single_neuron_correlaitons.shape
+# %%
+single_neuron_correlaitons = single_neuron_correlaitons.numpy()
+single_neuron_correlaitons.shape
+#%%
+lin_rf = np.load(
+    "/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-11-01_10:33:47/hyperparametersearch_report.npy"
+)
+# %%
+lin_rf_corrs = lin_rf[0:64, 2].reshape(64, 1)
+lin_rf_corrs.shape
+# %%
+score = np.multiply((1 - lin_rf_corrs), single_neuron_correlaitons)
+score.shape
+score
+# %%
+# TODO forward pass without noise?
+with torch.no_grad():
+    a = encoding_model(images.to(device))
+a
+# %%
+a = encoding_model(images.to(device))
+a
+#%%
 # Batch size during training
 batch_size = 128
 

@@ -96,11 +96,29 @@ def get_complete_dataset(dataloaders, key="train", region="region1"):
         responses_tensor[i] = response
 
     print(
-        f"The {key} set of dataset {region}\
-contains the responses of {dataset[0][1].shape[0]} neurons to {len(dataset)} images."
+        f"The {key} set of dataset {region} contains the responses of "
+        f"{dataset[0][1].shape[0]} neurons to {len(dataset)} images."
     )
 
     return images_tensor, responses_tensor
+
+
+def get_images_reponses(region="region1"):
+    """Return dataset of region where train and validation is concatonated.
+
+    Args:
+        region (str, optional): Region. Defaults to 'region1'.
+
+    Returns:
+        tuple: tuple of image and response tensor.
+    """
+    images, responses = get_complete_dataset(get_dataloaders(), region=region)
+    v_images, v_responses = get_complete_dataset(
+        get_dataloaders(), key="validation", region=region
+    )
+    torch.cat([images, v_images], dim=0)
+    torch.cat([responses, v_responses], dim=0)
+    return images, responses
 
 
 # map-style datasets
