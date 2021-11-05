@@ -73,6 +73,7 @@ score
 # %%
 # TODO forward pass without noise?
 with torch.no_grad():
+    encoding_model.eval()
     a = encoding_model(images.to(device))
 a
 # %%
