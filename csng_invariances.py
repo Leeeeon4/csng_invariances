@@ -134,7 +134,7 @@ if __name__ == "__main__":
             - low pass filtering - in fourier domain - of gradient before application
     5. Train generator:
         - train generator model on: n(0,1)
-        - maximize neural activation of selected neurons
+        - optimize neural activation of selected neurons on MEI (target)
     6. Generate Samples:
         - from: u(-2,2)
     7. Compute and apply ROI

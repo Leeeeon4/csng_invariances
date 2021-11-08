@@ -162,7 +162,7 @@ texinfo_documents = [
         "CSNG: Finding Invariances in Sensory Coding Documentation",
         author,
         "csng_invariances",
-        "One line description of project.",
+        "Repository for finding invariances in visual sensory coding in V1 visual cortex. Based on Kovacs 2021, Finding invariances in sensory coding through gradient methods as well as Lurz et al. 2020, Generalization in data-driven models of primary visual cortex",
         "Miscellaneous",
     ),
 ]
