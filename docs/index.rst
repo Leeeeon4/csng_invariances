@@ -6,6 +6,7 @@ Welcome to CSNG: Finding Invariances in Sensory Coding's documentation!
    :caption: Contents:
 
    readme
+   concept
    installation
    usage
    modules

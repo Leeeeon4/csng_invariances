@@ -35,3 +35,11 @@ csng\_invariances.linear\_receptive\_field module
    :members:
    :undoc-members:
    :show-inheritance:
+
+csng\_invariances.pick\_neurons module
+--------------------------------------
+
+.. automodule:: csng_invariances.pick_neurons
+   :members:
+   :undoc-members:
+   :show-inheritance:
