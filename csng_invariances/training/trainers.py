@@ -264,3 +264,54 @@ def standard_trainer(
         else np.mean(validation_correlation)
     )
     return score, output, model.state_dict()
+
+
+def generator_training(
+    model,
+    device,
+    seed,
+    loss_function,
+    avg_loss,
+    # stop function,
+    # dataloaders,
+    n_samples,
+    samples,
+    lr_init,
+    # lr_decay_factor,
+    # lr_decay_steps,
+    # patience, 
+    # tolerance,
+    # verbose, 
+    # min_lr,
+    # maximize = False, 
+    ):
+
+    model.to(device)
+    set_random_seed(seed)
+    model.train()
+
+    criterion = getattr(mlmeasures, loss_function)(avg=avg_loss)
+
+    # stop_closure = partial(
+    #     getattr(measures, stop_function),
+    #     dataloaders=dataloaders["validation"],
+    #     device=device,
+    #     per_neuron=False,
+    #     avg=True,
+    # )
+
+    # n_iterations = len(LongCycler(dataloaders["train"]))
+
+    n_interations = n_samples
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr_init)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer,
+    #     mode="max" if maximize else "min",
+    #     factor=lr_decay_factor,
+    #     patience=patience,
+    #     threshold=tolerance,
+    #     min_lr=min_lr,
+    #     verbose=verbose,
+    #     threshold_mode="abs",
+    # )
