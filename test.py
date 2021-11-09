@@ -1,5 +1,6 @@
 # %%
 import torch
+from torch._C import device
 import torch.optim as optim
 import numpy as np
 
@@ -8,7 +9,7 @@ from torch import nn
 from csng_invariances.datasets.lurz2020 import get_complete_dataset, static_loaders
 from csng_invariances.utility.data_helpers import load_configs
 from csng_invariances.encoding import *
-from csng_invariances.select_neurons
+from csng_invariances.select_neurons import *
 
 # %%
 # Load model
@@ -20,6 +21,16 @@ configs = load_configs(model_directory)
 dataloaders = static_loaders(**configs["dataset_config"])
 images, responses = get_complete_dataset(dataloaders)
 # TODO sort the whole dataset handling mess i made
+#%%
+neuron_count = responses.shape[1]
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+neuron_count
+dim1 = 36
+dim2 = 64
+white_noise_images_tensor = torch.randint(
+    0, 255, size=(neuron_count, 1, dim1, dim2), device=device
+)
+
 # %%
 # Get DNN correlations
 dnn_single_neuron_corrs = get_single_neuron_correlation(
