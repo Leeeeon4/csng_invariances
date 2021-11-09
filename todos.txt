@@ -1,5 +1,4 @@
 # current
-TODO generator always between 0 and 1 - normalize before passing to encoding model
 TODO trainer for generator training
 
 # Must be done
@@ -11,7 +10,8 @@ TODO reread Sinzlab papers
 TODO strategically: reimplement model architecture and trainer, just on images and responses, so that antolik and lurz can be compared or try to use antolik on trained lurz model
 
 # Should be done
-TODO Sainity check 
+TODO reorganization of modules
+TODO Testing
 
 # Would be nice
 TODO figure out if import csng_invariances. ... or ...

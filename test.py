@@ -8,6 +8,7 @@ from torch import nn
 from csng_invariances.datasets.lurz2020 import get_complete_dataset, static_loaders
 from csng_invariances.utility.data_helpers import load_configs
 from csng_invariances.encoding import *
+from csng_invariances.select_neurons
 
 # %%
 # Load model
@@ -34,6 +35,26 @@ lin_single_neuron_corr = torch.from_numpy(lin_rf[:, 2]).to("cuda")
 # compute score
 score = (1 - lin_single_neuron_corr) * dnn_single_neuron_corrs
 #%%
+def select_neurons(score, num_neurons):
+    """Select num_neurons higest scoring neurons.
+
+    Args:
+        score (Tensor): Score tensor
+        num_neurons (int): number of neurons to select.
+
+    Returns:
+        Tensor: Tensor of indicies of neurons to select based on their score.
+    """
+    _, indicies = torch.sort(score, descending=True)
+    return indicies[0:num_neurons]
+
+
+# %%
+a = select_neurons(score, 10)
+a
+
+
+# %%
 # Batch size during training
 batch_size = 128
 
