@@ -6,8 +6,10 @@ import torch.optim as optim
 import argparse
 import datetime
 import json
+import numpy as np
 
 from rich import print
+from rich.progress import track
 from pathlib import Path
 from torch import nn
 
@@ -491,8 +493,68 @@ def load_encoding_model(model_directory):
     model.load_state_dict(
         torch.load(Path(model_directory) / "Pretrained_core_readout_lurz.pth")
     )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    training_device = configs["trainer_config"]["device"]
+    print(
+        f"The model was trained on {training_device}. "
+        f"It is currently running on {device}."
+    )
+    model.to(device)
     model.eval()
     return model
+
+
+def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwargs):
+    """Computes the single neuron corrlations.
+
+    Args:
+        model (nn.Module): Encoding model to use for predictions
+        images (tensor): image tensor
+        responses (tensor): response tensor
+
+    Returns:
+        tensor: single neuron correlations tensor of dimension (neuron_count,
+            image_count)
+    """
+
+    neuron_count = responses.shape[1]
+    image_count = responses.shape[0]
+    num_batches, num_images_last_batch = divmod(image_count, batch_size)
+
+    device = torch.device("cuda" if next(model.parameters()).is_cuda else "cpu")
+    single_neuron_correlations = torch.empty(neuron_count, device=device)
+    predictions = torch.empty_like(responses)
+    with torch.no_grad():
+        for batch in track(range(num_batches)):
+            image_batch = images[
+                (batch) * batch_size : (batch + 1) * batch_size, :, :, :
+            ]
+            prediction_batch = model(image_batch.to(device))
+            print(prediction_batch.shape)
+            predictions[
+                (batch) * batch_size : (batch + 1) * batch_size, :
+            ] = prediction_batch
+        image_last_batch = images[
+            (num_batches * batch_size) : (
+                num_batches * batch_size + num_images_last_batch
+            ),
+            :,
+            :,
+            :,
+        ]
+        prediction_last_batch = model(image_last_batch.to(device))
+        predictions[
+            (num_batches * batch_size) : (
+                num_batches * batch_size + num_images_last_batch
+            ),
+            :,
+        ] = prediction_last_batch
+    for neuron in track(range(neuron_count)):
+        single_neuron_correlation = np.corrcoef(
+            responses[:, neuron], predictions[:, neuron]
+        )[0, 1]
+        single_neuron_correlations[neuron] = single_neuron_correlation
+    return single_neuron_correlations
 
 
 if __name__ == "__main__":
