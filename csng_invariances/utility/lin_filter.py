@@ -148,7 +148,7 @@ class Filter:
             dict: Dictionary of Neurons and Correlations
         """
         if report_dir is None:
-            self.report_dir = automatic_cwd / "reports" / "linear_filter" / self.time
+            self.report_dir = Path.cwd() / "reports" / "linear_filter" / self.time
             self.report_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.report_dir = report_dir
