@@ -24,3 +24,6 @@ Image preprocessing:
     - option 2: zero mean unit standard deviation
     - option 3: globally scalled to be between 0 and 1
     - option 4: combination of 2 and 3. 
+    - option 5: normalize by dividing through standard deviation
+    In Walker et al. 2019: everything is normalized
+    In Kovacs 2021: activations normalized by devision through standard deviation and images to zero mean and unit standard deviation

@@ -1,10 +1,13 @@
 # %%
 import torch
 from torch._C import device
+from torch.nn.modules import flatten
 import torch.optim as optim
 import numpy as np
 
 from torch import nn
+from torchvision.transforms.functional import normalize
+from torchvision.transforms.transforms import Normalize
 
 from csng_invariances.datasets.lurz2020 import get_complete_dataset, static_loaders
 from csng_invariances.utility.data_helpers import load_configs
@@ -28,11 +31,53 @@ neuron_count
 dim1 = 36
 dim2 = 64
 white_noise_images_tensor = torch.randint(
-    0, 255, size=(neuron_count, 1, dim1, dim2), device=device
+    0, 255, size=(neuron_count, 1, dim1, dim2), device=device, dtype=torch.float
 )
 # %%
-for i in dataloaders["train"]["20457-5-9-0"]:
-    print(i)
+from torchvision import transforms
+
+
+def handle_numpy_torch_tensor(func):
+    """Automatically handle torch and numpy tensors differently.
+
+    Args:
+        func (function): Function to handle
+
+    Returns:
+        tensor:
+            type numpy tensor if a numpy tensor was passed.
+            type torch tensor if a torch tensor was passed.
+
+    """
+
+    def wrapper(*args, **kwargs):
+        if args:
+            if torch.is_tensor(args[0]):
+                tensor = func(args)
+            else:
+                tensor = torch.from_numpy(args)
+                tensor = func(tensor)
+                tensor = tensor.numpy()
+        if kwargs:
+            if torch.is_tensor(list(kwargs.values())[0]):
+                tensor = func(list(kwargs.values())[0])
+            else:
+                tensor = torch.from_numpy(list(kwargs.values())[0])
+                tensor = func(tensor)
+                tensor = tensor.numpy()
+        return tensor
+
+    return wrapper
+
+
+@handle_numpy_torch_tensor
+def normalize(tensor):
+    return transforms.Normalize(0, 1)(tensor)
+
+
+normalize
+
+
 # %%
 # Get DNN correlations
 dnn_single_neuron_corrs = get_single_neuron_correlation(

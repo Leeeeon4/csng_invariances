@@ -8,6 +8,7 @@ import json
 
 from neuralpredictors.data.samplers import RepeatsBatchSampler
 from pathlib import Path
+from torchvision import transforms
 
 
 # Testdata
@@ -24,24 +25,79 @@ def get_test_dataset():
     return train_images, train_responses, val_images, val_responses
 
 
-def normalize_tensor_to_0_1(tensor):
-    """Normalizes a tensor to values between 0 and 1.
+def handle_numpy_torch_tensor(func):
+    """Automatically handle torch and numpy tensors differently.
+
+    Args:
+        func (function): Function to handle
+
+    Returns:
+        tensor:
+            type numpy tensor if a numpy tensor was passed.
+            type torch tensor if a torch tensor was passed.
+
+    """
+
+    def wrapper(*args, **kwargs):
+        if args:
+            if torch.is_tensor(args[0]):
+                tensor = func(args)
+            else:
+                tensor = torch.from_numpy(args)
+                tensor = func(tensor)
+                tensor = tensor.numpy()
+        if kwargs:
+            if torch.is_tensor(list(kwargs.values())[0]):
+                tensor = func(list(kwargs.values())[0])
+            else:
+                tensor = torch.from_numpy(list(kwargs.values())[0])
+                tensor = func(tensor)
+                tensor = tensor.numpy()
+        return tensor
+
+    return wrapper
+
+
+@handle_numpy_torch_tensor
+def scale_tensor_to_0_1(tensor):
+    """Scales a tensor to values between 0 and 1.
 
     Args:
         tensor (torch.tensor): Input tensor.
 
     Returns:
-        torch.tensor: Input tensor normalized to 0 and 1.
+        Tensor: Scaled input tensor.
     """
-    if torch.is_tensor(tensor):
-        tensor = tensor.add(abs(tensor.min()))
-        tensor = tensor.div(tensor.max())
-    else:
-        tensor = torch.from_numpy(tensor)
-        tensor = tensor.add(abs(tensor.min()))
-        tensor = tensor.div(tensor.max())
-        tensor = tensor.numpy()
+    tensor = tensor.add(abs(tensor.min()))
+    tensor = tensor.div(tensor.max())
     return tensor
+
+
+@handle_numpy_torch_tensor
+def normalize_tensor_zero_mean_unit_standard_deviation(tensor):
+    """Normalize tensor to zero mean and unit standard deviation.
+
+    Args:
+        tensor (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Normalized input tensor.
+    """
+    return transforms.Normalize(0, 1)(tensor)
+
+
+@handle_numpy_torch_tensor
+def normalize_tensor_by_standard_deviation_devision(tensor):
+    """Normalize tensor by dividing thorugh its standard deviation.
+
+    Args:
+        tensor (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Normalized input tensor.
+    """
+    mean = torch.mean(tensor)
+    return tensor.div(mean)
 
 
 def make_directories():

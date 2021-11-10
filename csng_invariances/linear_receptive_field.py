@@ -11,7 +11,7 @@ import csng_invariances.datasets.antolik2016 as al
 import csng_invariances.datasets.lurz2020 as lu
 import csng_invariances.utility.lin_filter as lin_fil
 
-from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm_0_1
+from csng_invariances.utility.data_helpers import *
 
 
 def get_lurz_dataset():
@@ -53,6 +53,36 @@ def get_antolik_dataset(region):
     return train_images, train_responses, val_images, val_responses
 
 
+# TODO which preprocessing
+
+
+def image_preprocessing(images):
+    """Preprocesses images
+
+    Args:
+        images (Tensor): Image tensor.
+
+    Returns:
+        Tensor: Preprocessed images.
+    """
+    images = normalize_tensor_zero_mean_unit_standard_deviation(images)
+    images = scale_tensor_to_0_1(images)
+    return images
+
+
+def response_preprocessing(responses):
+    """Preprocesses responses
+
+    Args:
+        responses (Tensor): Response tensor.
+
+    Returns:
+        Tensor: Preprocessed responses
+    """
+    responses = normalize_tensor_by_standard_deviation_devision(responses)
+    return responses
+
+
 def globally_regularized_linear_receptive_field(
     reg_factors, train_images, train_responses, val_images, val_responses
 ):
@@ -76,12 +106,15 @@ def globally_regularized_linear_receptive_field(
     """
 
     # Build filters for estimation of linear receptive field
-    # TODO Do we want to normalize the images?
     TrainFilter = lin_fil.GlobalRegularizationFilter(
-        norm_0_1(train_images), norm_0_1(train_responses), reg_type="ridge regularized"
+        image_preprocessing(train_images),
+        response_preprocessing(train_responses),
+        reg_type="ridge regularized",
     )
     ValFilter = lin_fil.GlobalRegularizationFilter(
-        norm_0_1(val_images), norm_0_1(val_responses), reg_type="ridge regularized"
+        image_preprocessing(val_images),
+        response_preprocessing(val_responses),
+        reg_type="ridge regularized",
     )
 
     # hyperparametersearch
@@ -125,10 +158,14 @@ def individually_regularized_linear_receptive_field(
     """
     # Build filters for estimation of linear receptive field
     TrainFilter = lin_fil.IndividualRegularizationFilter(
-        norm_0_1(train_images), norm_0_1(train_responses), reg_type="ridge regularized"
+        image_preprocessing(train_images),
+        response_preprocessing(train_responses),
+        reg_type="ridge regularized",
     )
     ValFilter = lin_fil.IndividualRegularizationFilter(
-        norm_0_1(val_images), norm_0_1(val_responses), reg_type="ridge regularized"
+        image_preprocessing(val_images),
+        response_preprocessing(val_responses),
+        reg_type="ridge regularized",
     )
 
     # hyperparametersearch
