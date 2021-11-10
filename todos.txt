@@ -17,3 +17,10 @@ TODO Testing
 # Would be nice
 TODO figure out if import csng_invariances. ... or ...
 TODO refactor dataset
+
+# Notes
+Image preprocessing:
+    - option 1: unprocessed
+    - option 2: zero mean unit standard deviation
+    - option 3: globally scalled to be between 0 and 1
+    - option 4: combination of 2 and 3. 

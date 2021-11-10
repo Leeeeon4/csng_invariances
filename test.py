@@ -30,7 +30,9 @@ dim2 = 64
 white_noise_images_tensor = torch.randint(
     0, 255, size=(neuron_count, 1, dim1, dim2), device=device
 )
-
+# %%
+for i in dataloaders["train"]["20457-5-9-0"]:
+    print(i)
 # %%
 # Get DNN correlations
 dnn_single_neuron_corrs = get_single_neuron_correlation(

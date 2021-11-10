@@ -30,20 +30,21 @@ to a score metric.
 Two types of encoding are used:
     1. Linear encoding:
 
-    .. math:: 
-        \mathbf{F} = (\mathbf{X}^{T} \mathbf{X} + \lambda \mathbf{L} )^{-1} \mathbf{X}^{T} \mathbf{y} \\
-        \\
-        \mathbf{F}: \textrm{Filter representing linear encoding} \\
-        \mathbf{X}: \textrm{Image stimuli} \\
-        \lambda: \textrm{Regularization factor} \\
-        \mathbf{L}: \textrm{Regularization Matrix - for ridge regularization identity} \\
-        \mathbf{y}: \textrm{Neural response}
+        .. math:: 
+            \mathbf{F} = (\mathbf{X}^{T} \mathbf{X} + \lambda \mathbf{L} )^{-1} \mathbf{X}^{T} \mathbf{y} \\
+            \\
+            \mathbf{F}: \textrm{Filter representing linear encoding} \\
+            \mathbf{X}: \textrm{Image stimuli} \\
+            \lambda: \textrm{Regularization factor} \\
+            \mathbf{L}: \textrm{Regularization Matrix - for ridge regularization identity} \\
+            \mathbf{y}: \textrm{Neural response}\\
 
+        In this case images are currently normalized to zero mean and unit standard deviation as well as globally scaled to be element of [0, 1]. 
 
     2. DNN encoding: 
 
         Encoding model is model presented by `Lurz et al. 2021 - Generalizations in Data-Driven Models of Primary Visual Cortex`_.
-
+        In this case images are currently not preprocessed at all. 
 .. _`Lurz et al. 2021 - Generalizations in Data-Driven Models of Primary Visual Cortex`: https://www.biorxiv.org/content/10.1101/2020.10.05.326256v2.abstract
 
 

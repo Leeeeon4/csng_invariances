@@ -17,7 +17,7 @@ def meis(model, images, responses, neurons_to_select, octaves, seed=1, **kwargs)
     selected_neurons_count = neurons_to_select.shape
     white_noise_image_tensor = torch.randint(1, c, w, h, requires_grad=True, device=device, seed=seed)
     # TODO should we always use the same white noise tensor to start?
-    # TODO normalize this tensor
+    # TODO normalize this tensor? I do so for lin. filter estimation
 
 # TODO compute meis for selected neurons: 
 # pick gradient with respect to selected neuron

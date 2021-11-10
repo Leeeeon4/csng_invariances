@@ -76,6 +76,7 @@ def globally_regularized_linear_receptive_field(
     """
 
     # Build filters for estimation of linear receptive field
+    # TODO Do we want to normalize the images?
     TrainFilter = lin_fil.GlobalRegularizationFilter(
         norm_0_1(train_images), norm_0_1(train_responses), reg_type="ridge regularized"
     )
