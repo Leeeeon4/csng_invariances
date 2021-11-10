@@ -12,15 +12,17 @@ import wandb
 from functools import partial
 from tqdm import tqdm
 from rich import print
-from neuralpredictors import measures as mlmeasures
-from neuralpredictors.training import (
+from nnfabrik.utility.nn_helpers import set_random_seed
+
+import csng_invariances.utility.measures as measures
+
+# private fork of neuralpredictors
+from csng_invariances.neuralpredictors import measures as mlmeasures
+from csng_invariances.neuralpredictors.training import (
     early_stopping,
     MultipleObjectiveTracker,
     LongCycler,
 )
-from nnfabrik.utility.nn_helpers import set_random_seed
-
-import csng_invariances.utility.measures as measures
 
 from csng_invariances.utility.measures import get_correlations, get_poisson_loss
 
@@ -279,12 +281,12 @@ def generator_training(
     lr_init,
     # lr_decay_factor,
     # lr_decay_steps,
-    # patience, 
+    # patience,
     # tolerance,
-    # verbose, 
+    # verbose,
     # min_lr,
-    # maximize = False, 
-    ):
+    # maximize = False,
+):
 
     model.to(device)
     set_random_seed(seed)

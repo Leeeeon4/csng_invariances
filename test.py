@@ -1,81 +1,39 @@
 # %%
 import torch
 from torch._C import device
-from torch.nn.modules import flatten
 import torch.optim as optim
 import numpy as np
 
 from torch import nn
-from torchvision.transforms.functional import normalize
-from torchvision.transforms.transforms import Normalize
-
-from csng_invariances.datasets.lurz2020 import get_complete_dataset, static_loaders
-from csng_invariances.utility.data_helpers import load_configs
-from csng_invariances.encoding import *
-from csng_invariances.select_neurons import *
+from rich import print
+from csng_invariances.encoding import load_encoding_model
 
 # %%
 # Load model
 model_directory = "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
 encoding_model = load_encoding_model(model_directory)
 # %%
-# Load data
-configs = load_configs(model_directory)
-dataloaders = static_loaders(**configs["dataset_config"])
-images, responses = get_complete_dataset(dataloaders)
-# TODO sort the whole dataset handling mess i made
+for param in encoding_model.parameters():
+    print(param)
 #%%
-neuron_count = responses.shape[1]
+import torch
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-neuron_count
-dim1 = 36
-dim2 = 64
-white_noise_images_tensor = torch.randint(
-    0, 255, size=(neuron_count, 1, dim1, dim2), device=device, dtype=torch.float
+c = 1
+w = 64
+h = 36
+seed = 1
+white_noise_image_tensor = torch.randint(
+    low=0,
+    high=255,
+    size=(1, c, w, h),
+    requires_grad=True,
+    device=device,
+    dtype=torch.float,
 )
+preprocessed_white_noise_image_tensor = image_preprocessing(white_noise_image_tensor)
+print(preprocessed_white_noise_image_tensor)
 # %%
-from torchvision import transforms
-
-
-def handle_numpy_torch_tensor(func):
-    """Automatically handle torch and numpy tensors differently.
-
-    Args:
-        func (function): Function to handle
-
-    Returns:
-        tensor:
-            type numpy tensor if a numpy tensor was passed.
-            type torch tensor if a torch tensor was passed.
-
-    """
-
-    def wrapper(*args, **kwargs):
-        if args:
-            if torch.is_tensor(args[0]):
-                tensor = func(args)
-            else:
-                tensor = torch.from_numpy(args)
-                tensor = func(tensor)
-                tensor = tensor.numpy()
-        if kwargs:
-            if torch.is_tensor(list(kwargs.values())[0]):
-                tensor = func(list(kwargs.values())[0])
-            else:
-                tensor = torch.from_numpy(list(kwargs.values())[0])
-                tensor = func(tensor)
-                tensor = tensor.numpy()
-        return tensor
-
-    return wrapper
-
-
-@handle_numpy_torch_tensor
-def normalize(tensor):
-    return transforms.Normalize(0, 1)(tensor)
-
-
-normalize
 
 
 # %%

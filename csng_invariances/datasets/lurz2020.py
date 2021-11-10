@@ -11,17 +11,23 @@ from itertools import zip_longest
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from nnfabrik.utility.nn_helpers import set_random_seed
-from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
-from neuralpredictors.data.transforms import (
+from rich import print
+from pathlib import Path
+
+# local fork of neuralpredictors
+from csng_invariances.neuralpredictors.data.datasets import (
+    StaticImageSet,
+    FileTreeDataset,
+)
+from csng_invariances.neuralpredictors.data.transforms import (
     Subsample,
     ToTensor,
     NeuroNormalizer,
     AddBehaviorAsChannels,
     SelectInputChannel,
 )
-from neuralpredictors.data.samplers import SubsetSequentialSampler
-from rich import print
-from pathlib import Path
+from csng_invariances.neuralpredictors.data.samplers import SubsetSequentialSampler
+
 
 from csng_invariances.utility.data_helpers import (
     get_oracle_dataloader,
@@ -141,6 +147,8 @@ def static_loader(
     file_tree=True,
     return_test_sampler=False,
     oracle_condition=None,
+    image_preprocessing=None,
+    response_preprocessing=None,
 ):
     """
     returns a single data loader
@@ -168,6 +176,8 @@ def static_loader(
         file_tree (bool, optional): whether to use the file tree dataset format. If False, equivalent to the HDF5 format
         return_test_sampler (bool, optional): whether to return only the test loader with repeat-batches
         oracle_condition (list, optional): Only relevant if return_test_sampler=True. Class indices for the sampler
+        image_preprocessing (function, optional): Function for all image preprocessing steps. Defaults to None.
+        response_preprocessing (function, optional): Function for all response preprocessing stepts. Defaults to None.
 
     Returns:
         if get_key is False returns a dictionary of dataloaders for one dataset, where the keys are 'train', 'validation', and 'test'.
@@ -203,9 +213,22 @@ def static_loader(
 
     if file_tree:
         dat = (
-            FileTreeDataset(path, "images", "responses", "behavior")
+            FileTreeDataset(
+                path,
+                "images",
+                "responses",
+                "behavior",
+                image_preprocessing=image_preprocessing,
+                response_preprocessing=response_preprocessing,
+            )
             if include_behavior
-            else FileTreeDataset(path, "images", "responses")
+            else FileTreeDataset(
+                path,
+                "images",
+                "responses",
+                image_preprocessing=image_preprocessing,
+                response_preprocessing=response_preprocessing,
+            )
         )
     else:
         dat = (
@@ -327,6 +350,8 @@ def static_loaders(
     file_tree=True,
     return_test_sampler=False,
     oracle_condition=None,
+    image_preprocessing=None,
+    response_preprocessing=None,
 ):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
@@ -391,6 +416,8 @@ def static_loaders(
             file_tree=file_tree,
             return_test_sampler=return_test_sampler,
             oracle_condition=oracle_condition,
+            image_preprocessing=image_preprocessing,
+            response_preprocessing=response_preprocessing,
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
@@ -446,6 +473,8 @@ def static_shared_loaders(
         select_input_channel (int, optional): Only for color images. Select a color channel
         return_test_sampler (bool, optional): whether to return only the test loader with repeat-batches
         oracle_condition (list, optional): Only relevant if return_test_sampler=True. Class indices for the sampler
+        image_preprocessing (function, optional): Function for all image preprocessing steps. Defaults to None.
+        response_preprocessing (function, optional): Function for all response preprocessing stepts. Defaults to None.
 
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.

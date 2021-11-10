@@ -10,6 +10,7 @@ TODO reread Sinzlab papers
 TODO strategically: reimplement model architecture and trainer, just on images and responses, so that antolik and lurz can be compared or try to use antolik on trained lurz model
 
 # Should be done
+TODO sort the whole dataset handling mess i made
 TODO reorganization of modules according to concepts
 TODO rename all private modules
 TODO Testing

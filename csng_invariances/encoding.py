@@ -130,7 +130,6 @@ def encode(parsed_kwargs):
     Args:
         parsed_kwargs (namespace): Namespace of parsed config arguments.
 
-    Returns:
         model: Trained encoding model.
     """
 

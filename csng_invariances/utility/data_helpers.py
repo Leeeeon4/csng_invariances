@@ -40,17 +40,17 @@ def handle_numpy_torch_tensor(func):
 
     def wrapper(*args, **kwargs):
         if args:
-            if torch.is_tensor(args[0]):
-                tensor = func(args)
+            if torch.is_tensor(*args):
+                tensor = func(*args)
             else:
-                tensor = torch.from_numpy(args)
+                tensor = torch.from_numpy(*args)
                 tensor = func(tensor)
                 tensor = tensor.numpy()
         if kwargs:
-            if torch.is_tensor(list(kwargs.values())[0]):
-                tensor = func(list(kwargs.values())[0])
+            if torch.is_tensor(list(**kwargs.values())[0]):
+                tensor = func(list(**kwargs.values())[0])
             else:
-                tensor = torch.from_numpy(list(kwargs.values())[0])
+                tensor = torch.from_numpy(list(**kwargs.values())[0])
                 tensor = func(tensor)
                 tensor = tensor.numpy()
         return tensor
@@ -83,7 +83,8 @@ def normalize_tensor_zero_mean_unit_standard_deviation(tensor):
     Returns:
         Tensor: Normalized input tensor.
     """
-    return transforms.Normalize(0, 1)(tensor)
+    tensor = transforms.Normalize(0, 1)(tensor)
+    return tensor
 
 
 @handle_numpy_torch_tensor
@@ -96,8 +97,9 @@ def normalize_tensor_by_standard_deviation_devision(tensor):
     Returns:
         Tensor: Normalized input tensor.
     """
-    mean = torch.mean(tensor)
-    return tensor.div(mean)
+    mean = torch.std(tensor)
+    tensor = tensor.div(mean)
+    return tensor
 
 
 def make_directories():

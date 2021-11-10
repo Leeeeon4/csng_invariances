@@ -708,35 +708,35 @@ def deepdraw(
 
     src = torch.zeros(1, c, w, h, requires_grad=True, device=device)
 
-    for e, o in enumerate(octaves):
-        if "scale" in o:
-            # resize by o['scale'] if it exists
-            image = ndimage.zoom(image, (1, o["scale"], o["scale"]))
-        _, imw, imh = image.shape
-        for i in range(o["iter_n"]):
-            if imw > w:
-                if random_crop:
-                    # randomly select a crop
-                    # ox = random.randint(0,imw-224)
-                    # oy = random.randint(0,imh-224)
-                    mid_x = (imw - w) / 2.0
-                    width_x = imw - w
-                    ox = np.random.normal(mid_x, width_x * 0.3, 1)
-                    ox = int(np.clip(ox, 0, imw - w))
-                    mid_y = (imh - h) / 2.0
-                    width_y = imh - h
-                    oy = np.random.normal(mid_y, width_y * 0.3, 1)
-                    oy = int(np.clip(oy, 0, imh - h))
-                    # insert the crop into src.data[0]
-                    src.data[0].copy_(torch.Tensor(image[:, ox : ox + w, oy : oy + h]))
-                else:
-                    ox = int((imw - w) / 2)
-                    oy = int((imh - h) / 2)
-                    src.data[0].copy_(torch.Tensor(image[:, ox : ox + w, oy : oy + h]))
-            else:
-                ox = 0
-                oy = 0
-                src.data[0].copy_(torch.Tensor(image))
+    # for e, o in enumerate(octaves):
+    #     if "scale" in o:
+    #         # resize by o['scale'] if it exists
+    #         image = ndimage.zoom(image, (1, o["scale"], o["scale"]))
+    #     _, imw, imh = image.shape
+    #     for i in range(o["iter_n"]):
+    #         if imw > w:
+    #             if random_crop:
+    #                 # randomly select a crop
+    #                 # ox = random.randint(0,imw-224)
+    #                 # oy = random.randint(0,imh-224)
+    #                 mid_x = (imw - w) / 2.0
+    #                 width_x = imw - w
+    #                 ox = np.random.normal(mid_x, width_x * 0.3, 1)
+    #                 ox = int(np.clip(ox, 0, imw - w))
+    #                 mid_y = (imh - h) / 2.0
+    #                 width_y = imh - h
+    #                 oy = np.random.normal(mid_y, width_y * 0.3, 1)
+    #                 oy = int(np.clip(oy, 0, imh - h))
+    #                 # insert the crop into src.data[0]
+    #                 src.data[0].copy_(torch.Tensor(image[:, ox : ox + w, oy : oy + h]))
+    #             else:
+    #                 ox = int((imw - w) / 2)
+    #                 oy = int((imh - h) / 2)
+    #                 src.data[0].copy_(torch.Tensor(image[:, ox : ox + w, oy : oy + h]))
+    #         else:
+    #             ox = 0
+    #             oy = 0
+    #             src.data[0].copy_(torch.Tensor(image))
 
             sigma = (
                 o["start_sigma"]

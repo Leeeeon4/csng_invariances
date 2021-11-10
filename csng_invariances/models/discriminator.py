@@ -7,13 +7,18 @@ import requests
 
 from torch import nn
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
-from neuralpredictors.layers.readouts import (
+from pathlib import Path
+
+# private fork of neuralpredictors
+from csng_invariances.neuralpredictors.layers.readouts import (
     MultipleFullGaussian2d,
     MultiplePointPooled2d,
     MultipleFullSXF,
 )
-from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
-from pathlib import Path
+from csng_invariances.neuralpredictors.layers.cores import (
+    TransferLearningCore,
+    SE2dCore,
+)
 
 from csng_invariances.utility.data_helpers import unpack_data_info
 
@@ -182,8 +187,8 @@ def se2d_fullgaussian2d(
             has to have all these ids and cannot have any more.
         init_noise: noise for initialization of weights
         init_transform_scale: scale of the weights of the randomly intialized grid_mean_predictor network
-        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
-            FullGaussian2d in neuralpredictors.layers.readouts
+        all other args: See Documentation of SE2dCore in csng_invariances.neuralpredictors.layers.cores and
+            FullGaussian2d in csng_invariances.neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
     if transfer_state_dict is not None:
@@ -366,8 +371,8 @@ def se2d_pointpooled(
             in the format {'data_key': dataloader object, .. }
         seed: random seed
         elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
-        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
-            PointPooled2D in neuralpredictors.layers.readouts
+        all other args: See Documentation of SE2dCore in csng_invariances.neuralpredictors.layers.cores and
+            PointPooled2D in csng_invariances.neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
 
@@ -480,8 +485,8 @@ def se2d_fullSXF(
             in the format {'data_key': dataloader object, .. }
         seed: random seed
         elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
-        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
-            fullSXF in neuralpredictors.layers.readouts
+        all other args: See Documentation of SE2dCore in csng_invariances.neuralpredictors.layers.cores and
+            fullSXF in csng_invariances.neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
 
@@ -631,8 +636,8 @@ def taskdriven_fullgaussian2d(
             has to have all these ids and cannot have any more.
         init_noise: noise for initialization of weights
         init_transform_scale: scale of the weights of the randomly intialized grid_mean_predictor network
-        all other args: See Documentation of TransferLearningCore in neuralpredictors.layers.cores and
-            FullGaussian2d in neuralpredictors.layers.readouts
+        all other args: See Documentation of TransferLearningCore in csng_invariances.neuralpredictors.layers.cores and
+            FullGaussian2d in csng_invariances.neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
 
@@ -788,8 +793,8 @@ def taskdriven_fullSXF(
             in the format {'data_key': dataloader object, .. }
         seed: random seed
         elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
-        all other args: See Documentation of TransferLearningCore  in neuralpredictors.layers.cores and
-            fullSXF in neuralpredictors.layers.readouts
+        all other args: See Documentation of TransferLearningCore  in csng_invariances.neuralpredictors.layers.cores and
+            fullSXF in csng_invariances.neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
 

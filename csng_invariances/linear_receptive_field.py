@@ -11,7 +11,7 @@ import csng_invariances.datasets.antolik2016 as al
 import csng_invariances.datasets.lurz2020 as lu
 import csng_invariances.utility.lin_filter as lin_fil
 
-from csng_invariances.utility.data_helpers import *
+from csng_invariances.preprocessing import *
 
 
 def get_lurz_dataset():
@@ -51,36 +51,6 @@ def get_antolik_dataset(region):
         dataloaders, "validation", region
     )
     return train_images, train_responses, val_images, val_responses
-
-
-# TODO which preprocessing
-
-
-def image_preprocessing(images):
-    """Preprocesses images
-
-    Args:
-        images (Tensor): Image tensor.
-
-    Returns:
-        Tensor: Preprocessed images.
-    """
-    images = normalize_tensor_zero_mean_unit_standard_deviation(images)
-    images = scale_tensor_to_0_1(images)
-    return images
-
-
-def response_preprocessing(responses):
-    """Preprocesses responses
-
-    Args:
-        responses (Tensor): Response tensor.
-
-    Returns:
-        Tensor: Preprocessed responses
-    """
-    responses = normalize_tensor_by_standard_deviation_devision(responses)
-    return responses
 
 
 def globally_regularized_linear_receptive_field(

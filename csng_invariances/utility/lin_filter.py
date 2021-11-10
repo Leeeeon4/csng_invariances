@@ -14,7 +14,7 @@ from rich import print
 from rich.progress import track
 from pathlib import Path
 
-from csng_invariances.utility.data_helpers import normalize_tensor_to_0_1 as norm
+from csng_invariances.utility.data_helpers import scale_tensor_to_0_1 as norm
 
 
 figure_sizes = {
