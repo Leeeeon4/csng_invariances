@@ -446,7 +446,9 @@ def encode(parsed_kwargs):
     if vars(parsed_kwargs)["dataset"] == "Lurz":
         model, dataloaders, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
         evaluate_lurz_readout_encoding(model, dataloaders, configs)
+        model.train(False)
         model.eval()
+
     return model
 
 

@@ -667,7 +667,7 @@ def deepdraw(
 
     Arguments:
         net (nn.Module or function): A backpropagatable function/module that receives
-            images in (B x C x H x W) form and outputs a scalar value per image.
+            images in (B x C x H x W) form and outputs a sc alar value per image.
         base_img (np.array): Initial image (h x w x c)
         octaves (list of dict): Configurations for each octave:
             n_iter (int): Number of iterations in this octave

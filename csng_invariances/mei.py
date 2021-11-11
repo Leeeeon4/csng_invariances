@@ -17,7 +17,7 @@ def meis(model, images, responses, neurons_to_select, octaves, seed=1, **kwargs)
     image_count, neuron_count = responses.shape
     selected_neurons_count = neurons_to_select.shape
     white_noise_image_tensor = torch.randint(
-        0, 255 , size=(1, c, w, h) , requires_grad=True, device=device
+        0, 255 , size=(1, c, w, h) , requires_grad=True, device=device, dtype=torch.float
         )
     preprocessed_white_noise_image_tensor = image_preprocessing(white_noise_image_tensor)
 
