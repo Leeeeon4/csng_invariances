@@ -9,8 +9,11 @@ from torch._C import Module
 
 from torch.nn.modules import activation
 
-from csng_invariances.preprocessing import image_preprocessing
+from csng_invariances.data.preprocessing import image_preprocessing
 from csng_invariances.encoding import *
+
+# %%
+from csng_invariances.data._data_helpers import *
 
 #%%
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -227,7 +230,7 @@ for epoch in range(2000):
     running_loss = 0.0
 
 # %%
-image_5 = generator_model(latent_tensor)
+image_5 = generator_model(generator_model.sample_from_normal())
 image_5.shape
 # %%
 from matplotlib import pyplot as plt

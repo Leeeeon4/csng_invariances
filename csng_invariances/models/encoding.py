@@ -20,7 +20,7 @@ from csng_invariances._neuralpredictors.layers.cores import (
     SE2dCore,
 )
 
-from csng_invariances.data._data_helpers import unpack_data_info
+from csng_invariances.data.data_helpers import unpack_data_info
 
 
 def download_pretrained_lurz_model():
