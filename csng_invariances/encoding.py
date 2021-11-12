@@ -2,7 +2,6 @@
 
 import wandb
 import torch
-import torch.optim as optim
 import argparse
 import datetime
 import json
@@ -11,7 +10,6 @@ import numpy as np
 from rich import print
 from rich.progress import track
 from pathlib import Path
-from torch import nn
 
 from csng_invariances.data.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.encoding import (
@@ -20,7 +18,8 @@ from csng_invariances.models.encoding import (
 )
 from csng_invariances.training.encoding import standard_trainer as lurz_trainer
 from csng_invariances.data._data_helpers import save_configs, load_configs
-from csng_invariances.models._measures import get_correlations, get_fraction_oracles
+from csng_invariances.training._measures import get_correlations, get_fraction_oracles
+from csng_invariances.data.preprocessing import *
 
 
 def encoding_parser():
@@ -339,7 +338,11 @@ def encode(parsed_kwargs):
         print(
             f"Running current dataset config:\n{json.dumps(dataset_config, indent=2)}"
         )
-        dataloaders = static_loaders(**dataset_config)
+        dataloaders = static_loaders(
+            image_preprocessing=image_preprocessing,
+            response_preprocessing=response_preprocessing,
+            **dataset_config,
+        )
 
         # Model setup
         print(f"Running current model config:\n{json.dumps(model_config, indent=2)}")
@@ -445,7 +448,7 @@ def encode(parsed_kwargs):
 
     if vars(parsed_kwargs)["dataset"] == "Lurz":
         model, dataloaders, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
-        evaluate_lurz_readout_encoding(model, dataloaders, configs)
+        # evaluate_lurz_readout_encoding(model, dataloaders, configs)
         model.train(False)
         model.eval()
 
@@ -497,7 +500,7 @@ def load_encoding_model(model_directory):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     training_device = configs["trainer_config"]["device"]
     print(
-        f"The model was trained on {training_device}. "
+        f"The encoding model was trained on {training_device}. "
         f"It is currently running on {device}."
     )
     model.to(device)
@@ -559,4 +562,5 @@ def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwa
 
 
 if __name__ == "__main__":
-    pass
+    kwargs = encoding_parser()
+    encode(kwargs)

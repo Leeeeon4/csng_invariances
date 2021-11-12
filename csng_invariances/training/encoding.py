@@ -11,11 +11,11 @@ import torch
 import wandb
 
 from functools import partial
-from tqdm import tqdm
 from rich import print
+from rich.progress import track
 from nnfabrik.utility.nn_helpers import set_random_seed
 
-import csng_invariances.models._measures as measures
+import csng_invariances.training._measures as measures
 
 # private fork of neuralpredictors
 from csng_invariances._neuralpredictors import measures as mlmeasures
@@ -25,7 +25,7 @@ from csng_invariances._neuralpredictors.training import (
     LongCycler,
 )
 
-from csng_invariances.models._measures import get_correlations, get_poisson_loss
+from csng_invariances.training._measures import get_correlations, get_poisson_loss
 
 
 def standard_trainer(
@@ -216,10 +216,10 @@ def standard_trainer(
 
         # train over batches
         optimizer.zero_grad()
-        for batch_no, (data_key, data) in tqdm(
+        for batch_no, (data_key, data) in track(
             enumerate(LongCycler(dataloaders["train"])),
             total=n_iterations,
-            desc="Epoch {}".format(epoch),
+            description="Epoch {}".format(epoch),
         ):
 
             loss = full_objective(

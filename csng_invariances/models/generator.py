@@ -70,7 +70,7 @@ class Generator(nn.Module):
         return nn.init.uniform_(self._empty_sample_tensor(), low, high)
 
 
-class LinearGenerator(Generator):
+class GrowingLinearGenerator(Generator):
     def __init__(
         self,
         images,
@@ -138,25 +138,6 @@ class LinearGenerator(Generator):
 
     def sample_from_unit(self, low, high):
         return super().sample_from_unit(low, high)
-
-
-class SelectedNeuronActivation(nn.Module):
-    """Naive loss function which maximizes the selected neuron's activation."""
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def forward(self, inputs: torch.Tensor, neuron_idx: int) -> torch.Tensor:
-        """Return the scalar neuron activation of the selected neuron.
-
-        Args:
-            inputs (torch.Tensor): input activation tensor.
-            neuron_idx (int): neuron to select
-
-        Returns:
-            torch.Tensor: output
-        """
-        return -inputs[:, neuron_idx].sum()
 
 
 # %%

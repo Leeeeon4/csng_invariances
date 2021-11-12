@@ -29,7 +29,7 @@ from csng_invariances._neuralpredictors.data.transforms import (
 from csng_invariances._neuralpredictors.data.samplers import SubsetSequentialSampler
 
 
-from csng_invariances.data.data_helpers import (
+from csng_invariances.data._data_helpers import (
     get_oracle_dataloader,
     make_directories,
 )
@@ -120,9 +120,6 @@ def get_complete_dataset(dataloaders, key="train", dataset_name="20457-5-9-0"):
         f"The {key} set of dataset {dataset_name} contains the responses of {neuron_count} neurons to {image_count} images."
     )
     return images_tensor, responses_tensor
-
-
-# TODO def get_images_responses():
 
 
 def static_loader(

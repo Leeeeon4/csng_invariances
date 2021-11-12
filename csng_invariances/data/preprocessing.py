@@ -1,6 +1,6 @@
 """Module from preprocessing of images and responses."""
 
-from csng_invariances.data.data_helpers import *
+from csng_invariances.data._data_helpers import *
 
 
 def image_preprocessing(images):
@@ -26,5 +26,5 @@ def response_preprocessing(responses):
     Returns:
         Tensor: Preprocessed responses
     """
-    responses = normalize_tensor_by_standard_deviation_devision(responses)
+    # responses = normalize_tensor_by_standard_deviation_devision(responses)
     return responses

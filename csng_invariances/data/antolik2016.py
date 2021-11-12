@@ -12,7 +12,7 @@ from rich import print
 from rich.progress import track
 from pathlib import Path
 
-from csng_invariances.data.data_helpers import make_directories
+from csng_invariances.data._data_helpers import make_directories
 
 
 def get_antolik2016_data():

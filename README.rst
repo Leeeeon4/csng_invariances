@@ -39,6 +39,10 @@ Features
 
 .. _`Lurz et al. 2020`: https://openreview.net/forum?id=Tp7kI90Htd
 
+* `Weights and Biases`_ integration. 
+
+.. _`Weights and Biases`: https://wandb.ai/csng-cuni/
+
 
 Credits
 -------
