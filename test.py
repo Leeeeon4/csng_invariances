@@ -5,6 +5,7 @@ from numpy.core.fromnumeric import size
 import torch
 from torch import nn
 import math
+from torch._C import Module
 
 from torch.nn.modules import activation
 
@@ -152,6 +153,38 @@ class LinearGenerator(Generator):
         return super().sample_from_unit(low, high)
 
 
+class ComputeModel(nn.Module):
+    def __init__(self, generator_model, encoding_model, *args, **kwargs):
+        super().__init__()
+        self.generator_model = generator_model
+        self.encoding_model = encoding_model.requires_grad_(False)
+
+    def forward(self, x):
+        x = generator_model(x)
+        x = image_preprocessing(x)
+        x = encoding_model(x)
+        return x
+
+
+class SelectedNeuronActivation(nn.Module):
+    """Naive loss function which maximizes the selected neuron's activation."""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, inputs: torch.Tensor, neuron_idx: int) -> torch.Tensor:
+        """Return the scalar neuron activation of the selected neuron.
+
+        Args:
+            inputs (torch.Tensor): input activation tensor.
+            neuron_idx (int): neuron to select
+
+        Returns:
+            torch.Tensor: output
+        """
+        return -inputs[:, neuron_idx].sum()
+
+
 #%%
 batch_size = 64
 images = torch.randn(size=(batch_size, 1, 36, 64), device=device, dtype=torch.float)
@@ -168,32 +201,39 @@ config = {
 #%%
 generator_model = LinearGenerator(**config)
 print(generator_model)
+# %%
+encoding_model.requires_grad_(False)
+print(encoding_model)
 #%%
 latent_tensor = generator_model.sample_from_normal()
 print(latent_tensor)
 
 # %%
-def forward_pass(generator_model, encoding_model, latent_tensor):
-    generated_images = generator_model(latent_tensor)
-    with torch.no_grad():
-        activations = encoding_model(generated_images)
-    return activations
-# %%
-class ComputeModel(nn.Module):
-    def __init__(self, generator_model, encoding_model):
-        super().__init__()
-        self.generator_model = generator_model
-        self.encoding_model = encoding_model
-    
-    def forward():
-        
-# %%
+gan = ComputeModel(generator_model, encoding_model)
+
 optimizer = optim.Adam(generator_model.parameters())
-for epoch in range(20):
+loss_function = SelectedNeuronActivation()
+
+running_loss = 0.0
+for epoch in range(2000):
     optimizer.zero_grad()
-    activations = forward_pass(generator_model, encoding_model, latent_tensor)
-    acti = activations[0]
-    acti.backward()
+    activations = gan(latent_tensor)
+    loss = loss_function(activations, 5)
+    loss.backward()
     optimizer.step()
+    running_loss += loss.item()
+    if epoch % 200 == 0:
+        print("[%d] loss: %.3f" % (epoch + 1, running_loss))
+    running_loss = 0.0
+
+# %%
+image_5 = generator_model(latent_tensor)
+image_5.shape
+# %%
+from matplotlib import pyplot as plt
+
+for i in range(64):
+    plt.imshow(image_5[i, :, :, :].cpu().detach().squeeze())
+    plt.show()
 
 # %%

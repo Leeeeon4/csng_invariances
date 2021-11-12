@@ -1,4 +1,6 @@
-from csng_invariances.utility.data_helpers import *
+"""Module from preprocessing of images and responses."""
+
+from csng_invariances.data.data_helpers import *
 
 
 def image_preprocessing(images):

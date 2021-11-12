@@ -1,4 +1,4 @@
-"""Module provding CNN encoding functionality."""
+"""Module provding encoding model functionality."""
 
 import wandb
 import torch
@@ -13,14 +13,14 @@ from rich.progress import track
 from pathlib import Path
 from torch import nn
 
-from csng_invariances.datasets.lurz2020 import download_lurz2020_data, static_loaders
-from csng_invariances.models.discriminator import (
+from csng_invariances.data.lurz2020 import download_lurz2020_data, static_loaders
+from csng_invariances.models.encoding import (
     download_pretrained_lurz_model,
     se2d_fullgaussian2d,
 )
-from csng_invariances.training.trainers import standard_trainer as lurz_trainer
-from csng_invariances.utility.data_helpers import save_configs, load_configs
-from csng_invariances.utility.measures import get_correlations, get_fraction_oracles
+from csng_invariances.training.encoding import standard_trainer as lurz_trainer
+from csng_invariances.data._data_helpers import save_configs, load_configs
+from csng_invariances.models._measures import get_correlations, get_fraction_oracles
 
 
 def encoding_parser():

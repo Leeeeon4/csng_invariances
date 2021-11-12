@@ -6,9 +6,10 @@ import torch
 import torch.utils.data as utils
 import json
 
-from neuralpredictors.data.samplers import RepeatsBatchSampler
 from pathlib import Path
 from torchvision import transforms
+
+from csng_invariances._neuralpredictors.data.samplers import RepeatsBatchSampler
 
 
 # Testdata

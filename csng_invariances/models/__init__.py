@@ -1,1 +1,1 @@
-"""Provide submodule with different generator, discriminator and gan models."""
+"""Subpackage with different DNN models."""

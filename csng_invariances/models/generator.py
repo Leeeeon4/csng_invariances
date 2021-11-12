@@ -1,55 +1,162 @@
-"""Create generator model."""
-
+"""Module for generator model classes."""
+#%%
+from typing import OrderedDict
+import torch
 from torch import nn
+import math
 
 
-class ExampleGenerator(nn.Module):
-    """Create generator model class.
+class Generator(nn.Module):
+    """Highlevel GeneratorModel class."""
 
-    Create generator model to generate sample form latent space.
-    Model consists of: linear layer, leaky ReLU, linear layer, linear layer,
-    and optionally passed output_activation.
-    This class is based on Lazarou 2020: PyTorch and GANs: A Micro Tutorial.
-    tutorial, which can be found at:
-    https://towardsdatascience.com/\
-        pytorch-and-gans-a-micro-tutorial-804855817a6b
-    Most in-line comments are direct quotes from the tutorial. The code is
-    copied and slightly adapted.
-    """
-
-    def __init__(self, latent_dim, output_activation=None):
-        """Instantiates the generator model.
+    def __init__(
+        self,
+        images,
+        responses,
+        latent_space_dimension,
+        batch_size,
+        device=None,
+        *args,
+        **kwargs,
+    ):
+        """Instantiation.
 
         Args:
-            latent_dim (int): Dimension of the latent space tensor.
-            output_activation (torch.nn activation funciton, optional):
-                activation function to use. Defaults to None.
+            images (Tensor): image tensor.
+            responses (Tensor): response tensor.
+            latent_space_dimension (int): Size of the latent vector
+            batch_size (int): batch_size
+            device (str, optional): Device to compute on. Defaults to None.
         """
         super().__init__()
-        self.linear1 = nn.Linear(latent_dim, 64)
-        self.leaky_relu = nn.LeakyReLU()
-        self.linear2 = nn.Linear(64, 32)
-        self.linear3 = nn.Linear(32, 1)
-        self.output_activation = output_activation
 
-    def forward(self, input_tensor):
-        """Forward pass.
+        self.images = images
+        self.responses = responses
+        self.latent_space_dimension = latent_space_dimension
+        self.batch_size = batch_size
+        self.image_count, self.channels, self.height, self.width = self.images.shape
+        _, self.neuron_count = self.responses.shape
+        if device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            self.device = device
 
-        Defines the forward pass through the generator model.
-        Maps the latent vector to samples.
+    def forward(self, x):
+        """Forward pass through the model
 
         Args:
-            input_tensor (torch.Tensor): tensor which is input
-                into the generator model.
+            x (Tensor): Input tensor
 
         Returns:
-            torch.Tensor: Output tensor after the forward pass.
+            Tensor: tensor representing a generated image.
         """
-        intermediate = self.linear1(input_tensor)
-        intermediate = self.leaky_relu(intermediate)
-        intermediate = self.linear2(intermediate)
-        intermediate = self.leaky_relu(intermediate)
-        intermediate = self.linear3(intermediate)
-        if self.output_activation is not None:
-            intermediate = self.output_activation(intermediate)
-        return intermediate
+        # reshape if necessary
+        if x.shape != (x.shape[0], self.channels, self.height, self.width):
+            x = x.reshape(x.shape[0], self.channels, self.height, self.width)
+        return x
+
+    def _empty_sample_tensor(self):
+        return torch.empty(
+            size=(self.batch_size, self.latent_space_dimension),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=True,
+        )
+
+    def sample_from_normal(self, mean=0, std=1):
+        return nn.init.normal_(self._empty_sample_tensor(), mean, std)
+
+    def sample_from_unit(self, low, high):
+        return nn.init.uniform_(self._empty_sample_tensor(), low, high)
+
+
+class LinearGenerator(Generator):
+    def __init__(
+        self,
+        images,
+        responses,
+        latent_space_dimension,
+        batch_size,
+        layer_growth,
+        device=None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            images,
+            responses,
+            latent_space_dimension,
+            batch_size,
+            device=device,
+            *args,
+            **kwargs,
+        )
+        self.layer_growth = layer_growth
+
+        quotient, remainder = divmod(
+            math.log(
+                (
+                    (self.channels * self.height * self.width)
+                    / self.latent_space_dimension
+                ),
+                self.layer_growth,
+            ),
+            1,
+        )
+        self.layers = OrderedDict()
+        for layer in range(int(quotient)):
+            l = nn.Linear(
+                in_features=int(
+                    self.latent_space_dimension * self.layer_growth ** layer
+                ),
+                out_features=int(
+                    self.latent_space_dimension * self.layer_growth ** (layer + 1)
+                ),
+                device=device,
+            )
+            self.layers[f"Linear Layer {layer}"] = l
+            self.layers[f"ReLU {layer}"] = nn.ReLU()
+        if remainder != 0:
+            l = nn.Linear(
+                in_features=int(
+                    self.latent_space_dimension * self.layer_growth ** (quotient)
+                ),
+                out_features=int(self.channels * self.height * self.width),
+                device=device,
+            )
+            self.layers["Last Linear Layer"] = l
+            self.layers["Last ReLU"] = nn.ReLU()
+
+        self.linear_stack = nn.Sequential(self.layers)
+
+    def forward(self, x):
+        x = self.linear_stack(x)
+        return super().forward(x)
+
+    def sample_from_normal(self, mean=0, std=1):
+        return super().sample_from_normal(mean, std)
+
+    def sample_from_unit(self, low, high):
+        return super().sample_from_unit(low, high)
+
+
+class SelectedNeuronActivation(nn.Module):
+    """Naive loss function which maximizes the selected neuron's activation."""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, inputs: torch.Tensor, neuron_idx: int) -> torch.Tensor:
+        """Return the scalar neuron activation of the selected neuron.
+
+        Args:
+            inputs (torch.Tensor): input activation tensor.
+            neuron_idx (int): neuron to select
+
+        Returns:
+            torch.Tensor: output
+        """
+        return -inputs[:, neuron_idx].sum()
+
+
+# %%

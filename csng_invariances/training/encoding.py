@@ -1,7 +1,8 @@
-"""This module was provided by Lurz et al. ICLR 2021: GENERALIZATION IN
-DATA-DRIVEN MODELS OF PRIMARY VISUAL CORTEX.
+"""Encoding models module.
 
-The modul was altered to incorporate weights and biases logging.
+This module was provided by Lurz et al. ICLR 2021: GENERALIZATION IN DATA-DRIVEN
+MODELS OF PRIMARY VISUAL CORTEX. The modul was altered to incorporate weights 
+and biases logging.
 """
 
 
@@ -14,17 +15,17 @@ from tqdm import tqdm
 from rich import print
 from nnfabrik.utility.nn_helpers import set_random_seed
 
-import csng_invariances.utility.measures as measures
+import csng_invariances.models._measures as measures
 
 # private fork of neuralpredictors
-from csng_invariances.neuralpredictors import measures as mlmeasures
-from csng_invariances.neuralpredictors.training import (
+from csng_invariances._neuralpredictors import measures as mlmeasures
+from csng_invariances._neuralpredictors.training import (
     early_stopping,
     MultipleObjectiveTracker,
     LongCycler,
 )
 
-from csng_invariances.utility.measures import get_correlations, get_poisson_loss
+from csng_invariances.models._measures import get_correlations, get_poisson_loss
 
 
 def standard_trainer(
@@ -266,54 +267,3 @@ def standard_trainer(
         else np.mean(validation_correlation)
     )
     return score, output, model.state_dict()
-
-
-def generator_training(
-    model,
-    device,
-    seed,
-    loss_function,
-    avg_loss,
-    # stop function,
-    # dataloaders,
-    n_samples,
-    samples,
-    lr_init,
-    # lr_decay_factor,
-    # lr_decay_steps,
-    # patience,
-    # tolerance,
-    # verbose,
-    # min_lr,
-    # maximize = False,
-):
-
-    model.to(device)
-    set_random_seed(seed)
-    model.train()
-
-    criterion = getattr(mlmeasures, loss_function)(avg=avg_loss)
-
-    # stop_closure = partial(
-    #     getattr(measures, stop_function),
-    #     dataloaders=dataloaders["validation"],
-    #     device=device,
-    #     per_neuron=False,
-    #     avg=True,
-    # )
-
-    # n_iterations = len(LongCycler(dataloaders["train"]))
-
-    n_interations = n_samples
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr_init)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer,
-    #     mode="max" if maximize else "min",
-    #     factor=lr_decay_factor,
-    #     patience=patience,
-    #     threshold=tolerance,
-    #     min_lr=min_lr,
-    #     verbose=verbose,
-    #     threshold_mode="abs",
-    # )

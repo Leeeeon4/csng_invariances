@@ -14,7 +14,7 @@ from rich import print
 from rich.progress import track
 from pathlib import Path
 
-from csng_invariances.utility.data_helpers import scale_tensor_to_0_1 as norm
+from csng_invariances.data.data_helpers import scale_tensor_to_0_1 as norm
 
 
 figure_sizes = {
@@ -198,10 +198,6 @@ class Filter:
                 )
         print("Reporting procedure concluded.")
         return self.report_dir / ""
-
-    def select_neurons(self):
-        # TODO neuron selection process
-        pass
 
     def _shape_printer(self):
         """Print shape related information for debugging."""

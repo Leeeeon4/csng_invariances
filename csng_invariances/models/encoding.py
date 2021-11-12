@@ -10,17 +10,17 @@ from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dic
 from pathlib import Path
 
 # private fork of neuralpredictors
-from csng_invariances.neuralpredictors.layers.readouts import (
+from csng_invariances._neuralpredictors.layers.readouts import (
     MultipleFullGaussian2d,
     MultiplePointPooled2d,
     MultipleFullSXF,
 )
-from csng_invariances.neuralpredictors.layers.cores import (
+from csng_invariances._neuralpredictors.layers.cores import (
     TransferLearningCore,
     SE2dCore,
 )
 
-from csng_invariances.utility.data_helpers import unpack_data_info
+from csng_invariances.data._data_helpers import unpack_data_info
 
 
 def download_pretrained_lurz_model():

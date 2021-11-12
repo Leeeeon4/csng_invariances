@@ -5,6 +5,21 @@ import torch.optim as optim
 
 from torch import nn
 
+from csng_invariances.data.preprocessing import image_preprocessing
+
+
+class ComputeModel(nn.Module):
+    def __init__(self, generator_model, encoding_model, *args, **kwargs):
+        super().__init__()
+        self.generator_model = generator_model
+        self.encoding_model = encoding_model.requires_grad_(False)
+
+    def forward(self, x):
+        x = self.generator_model(x)
+        x = image_preprocessing(x)
+        x = self.encoding_model(x)
+        return x
+
 
 class ExampleGAN:
     """Create gan model class.

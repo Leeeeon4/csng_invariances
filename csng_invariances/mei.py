@@ -1,13 +1,14 @@
-    """Concept: 
-    1. preprocess images if necessary.
-    _, c, w, h = images.shape
-    2. src_image = torch.zeros(1, c, w, h, requires_grad=True, device=device)
+"""Module providing Most Exciting Image (MEI) funcitonality.
 
-
-    """
+Concept: 
+1. preprocess images if necessary.
+_, c, w, h = images.shape
+2. src_image = torch.zeros(1, c, w, h, requires_grad=True, device=device)
+"""
 
 import torch
-from csng_invariances.preprocessing import *
+from csng_invariances.data.preprocessing import *
+
 
 def meis(model, images, responses, neurons_to_select, octaves, seed=1, **kwargs):
 
@@ -17,14 +18,17 @@ def meis(model, images, responses, neurons_to_select, octaves, seed=1, **kwargs)
     image_count, neuron_count = responses.shape
     selected_neurons_count = neurons_to_select.shape
     white_noise_image_tensor = torch.randint(
-        0, 255 , size=(1, c, w, h) , requires_grad=True, device=device, dtype=torch.float
-        )
-    preprocessed_white_noise_image_tensor = image_preprocessing(white_noise_image_tensor)
+        0, 255, size=(1, c, w, h), requires_grad=True, device=device, dtype=torch.float
+    )
+    preprocessed_white_noise_image_tensor = image_preprocessing(
+        white_noise_image_tensor
+    )
 
-# TODO compute meis for selected neurons: 
+
+# TODO compute meis for selected neurons:
 # pick gradient with respect to selected neuron
-# for neuron in range(selected neuron coutn): 
-#   current mei = compute mei (neuron, white_noise_image_tensor) 
+# for neuron in range(selected neuron coutn):
+#   current mei = compute mei (neuron, white_noise_image_tensor)
 #   meis[neuron,:,:,:] = current mei
 
 #     for e, o in enumerate(octaves):

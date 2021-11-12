@@ -1,3 +1,5 @@
+"""Module providing neuron selection functionality."""
+
 import torch
 
 

@@ -8,8 +8,8 @@ import torch
 import types
 import contextlib
 
-from neuralpredictors.measures import corr
-from neuralpredictors.training import eval_state, device_state
+from csng_invariances._neuralpredictors.measures import corr
+from csng_invariances._neuralpredictors.training import eval_state, device_state
 
 
 def model_predictions_repeats(

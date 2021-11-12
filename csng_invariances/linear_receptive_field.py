@@ -1,4 +1,5 @@
-"""Module providing functions for conducting linear receptive field estimate experiments.
+"""Module providing functions for conducting linear receptive field estimate 
+experiments.
 """
 
 
@@ -7,11 +8,14 @@ import argparse
 from pathlib import Path
 from rich import print
 
-import csng_invariances.datasets.antolik2016 as al
-import csng_invariances.datasets.lurz2020 as lu
-import csng_invariances.utility.lin_filter as lin_fil
+import csng_invariances.data.antolik2016 as al
+import csng_invariances.data.lurz2020 as lu
+from csng_invariances.data.preprocessing import *
 
-from csng_invariances.preprocessing import *
+import csng_invariances.models.linear_filter as lin_fil
+
+
+# TODO change lin_fil to * import
 
 
 def get_lurz_dataset():

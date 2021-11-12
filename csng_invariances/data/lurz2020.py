@@ -15,21 +15,21 @@ from rich import print
 from pathlib import Path
 
 # local fork of neuralpredictors
-from csng_invariances.neuralpredictors.data.datasets import (
+from csng_invariances._neuralpredictors.data.datasets import (
     StaticImageSet,
     FileTreeDataset,
 )
-from csng_invariances.neuralpredictors.data.transforms import (
+from csng_invariances._neuralpredictors.data.transforms import (
     Subsample,
     ToTensor,
     NeuroNormalizer,
     AddBehaviorAsChannels,
     SelectInputChannel,
 )
-from csng_invariances.neuralpredictors.data.samplers import SubsetSequentialSampler
+from csng_invariances._neuralpredictors.data.samplers import SubsetSequentialSampler
 
 
-from csng_invariances.utility.data_helpers import (
+from csng_invariances.data.data_helpers import (
     get_oracle_dataloader,
     make_directories,
 )
