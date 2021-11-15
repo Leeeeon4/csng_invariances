@@ -192,10 +192,18 @@ def save_configs(configs, model_directory):
         configs (dict): Dictionary of sub_config dicts.
         model_directory (path): path to directory in which model is stored.
     """
-    configs["trainer_config"]["device"] = str(configs["trainer_config"]["device"])
-    for key, value in configs.items():
-        with open(model_directory / f"{key}.json", "w") as outfile:
-            json.dump(value, outfile, indent=2)
+    if "trainer_config" in configs:
+        if "device" in configs["trainer_config"]:
+            configs["trainer_config"]["device"] = str(
+                configs["trainer_config"]["device"]
+            )
+        for key, value in configs.items():
+            with open(model_directory / f"{key}.json", "w") as outfile:
+                json.dump(value, outfile, indent=2)
+    elif "device" in configs:
+        configs["device"] = str(configs["device"])
+        with open(model_directory / f"config.json", "w") as outfile:
+            json.dump(configs, outfile, indent=2)
 
 
 def load_configs(model_directory):

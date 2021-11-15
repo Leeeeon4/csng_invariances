@@ -1,10 +1,15 @@
-"""Generator models module."""
+"""Generator training module."""
 
 import torch
 import torch.optim as optim
 import wandb
+import datetime
 
+from rich import print
 from rich.progress import track
+from pathlib import Path
+
+from csng_invariances.data._data_helpers import save_configs
 from csng_invariances.models.gan import ComputeModel
 from csng_invariances.losses.generator import SelectedNeuronActivation
 
@@ -54,12 +59,12 @@ class NaiveTrainer(Trainer):
         )
 
     def train(self, selected_neuron: int):
-        wandb.init(
+        run = wandb.init(
             project="invariances_generator_growing_linear_generator", entity="leeeeon4"
         )
         config = wandb.config
         self.config["selected_neuron"] = selected_neuron
-        config.update(self.config)
+        config.update(self.config, allow_val_change=True)
         gan = ComputeModel(self.generator_model, self.encoding_model)
         optimizer = optim.Adam(self.generator_model.parameters())
         loss_function = SelectedNeuronActivation()
@@ -69,7 +74,7 @@ class NaiveTrainer(Trainer):
             for batch in track(
                 range(self.batches),
                 total=self.batches,
-                description="Epoch {}".format(epoch),
+                description=f"Epoch {epoch}/{self.epochs}:",
             ):
                 optimizer.zero_grad()
                 activations = gan(self.data[batch])
@@ -81,7 +86,36 @@ class NaiveTrainer(Trainer):
             print(
                 f"Epoch {epoch +1}:\n"
                 f"Average neural activation: "
-                f"{round(abs(running_loss/(self.batches*self.batch_size)),2)}"
+                f"{round(abs(running_loss/(self.batches*self.batch_size)),5)}"
             )
             running_loss = 0.0
+        t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        generator_model_directory = Path.cwd() / "models" / "generator" / t
+        generator_model_directory.mkdir(parents=True, exist_ok=True)
+        torch.save(
+            self.generator_model.state_dict(),
+            generator_model_directory
+            / f"Trained_generator_neuron_{selected_neuron}.pth",
+        )
+        save_configs(self.config, generator_model_directory)
+        generator_report_directory = Path.cwd() / "reports" / "generator"
+        generator_model_directory.mkdir(parents=True, exist_ok=True)
+        encoding_report_path = generator_report_directory / "readme.md"
+        if encoding_report_path.is_file() is False:
+            generator_report_directory.mkdir(parents=True, exist_ok=True)
+            with open(encoding_report_path, "w") as file:
+                file.write(
+                    "# Generator\n"
+                    "Generator training was tracked using weights and biases. "
+                    "Reports may be found at:\n"
+                    "https://wandb.ai/csng-cuni/invariances_generator_growing_linear_generator\n"
+                    "Reports are only accessible to members of the csng_cuni "
+                    "group.\n"
+                    "## Neuron specificity\n"
+                    "Generators are neuron specific. Please filter for 'selected_neuron' "
+                    "when looking at generator model performace, as all generators "
+                    "are stored in one WandB project."
+                )
+        print(f"Model and configs are stored at {generator_model_directory}")
+        run.finish()
         return self.generator_model
