@@ -4,7 +4,6 @@ from os import wait
 from rich import print
 import torch
 
-# testcomment
 from csng_invariances.encoding import *
 
 from csng_invariances.models.generator import *
