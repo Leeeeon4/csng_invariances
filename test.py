@@ -54,27 +54,13 @@
 # %%
 ################## work on mask ##################
 # %%
+from typing import Tuple
 from rich import print
 from csng_invariances.data.datasets import Lurz2021Dataset
 from pathlib import Path
 import torch
 
 # %%
-def print_cuda():
-    res = torch.cuda.memory_reserved(0)
-    allo = torch.cuda.memory_allocated(0)
-    print(
-        f"Reserved memory: {res:,}\n"
-        f"Allocated memory: {allo:,}\n"
-        f"Free memory: {(res-allo):,}"
-    )
-
-
-# %%
-print(
-    f"Total amount of GPU memory: {torch.cuda.get_device_properties(0).total_memory:,}"
-)
-print_cuda()
 seed = 1
 cuda = True
 batch_size = 32
@@ -89,10 +75,8 @@ dataset_config = {
     "normalize": True,
     "exclude": "images",
 }
-print("loading data")
 ds = Lurz2021Dataset(dataset_config)
 images, responses = ds.get_dataset()
-print_cuda()
 # %%
 from csng_invariances.encoding import load_encoding_model
 
@@ -100,43 +84,95 @@ print("loading encoding model")
 encoding_model = load_encoding_model(
     "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
 )
-print_cuda()
 # %%
 # select one image for mask analyzis
-print("select image\ncould free mem here")
 image = images[0, :, :, :].reshape(1, 1, images.shape[2], images.shape[3])
 response = responses[0, :]
 activation = encoding_model(image)
-# activation = activation.cpu()
-del images, responses
-print_cuda()
-# %%
-activation
+
 # %%
 import numpy as np
 from rich.progress import track
+from typing import Tuple
 
-num_different_pixels = 20
-stds = torch.empty(
-    size=(response.shape[0], image.shape[2], image.shape[3]), device="cuda"
-)
-with torch.no_grad():
-    for i in track(range(image.shape[2])):
-        for j in range(image.shape[3]):
-            activation_differences = torch.empty(
-                size=(response.shape[0], num_different_pixels)
-            )
-            for counter, value in enumerate(np.linspace(0, 255, num_different_pixels)):
-                img_copy = image
-                img_copy[:, :, i, j] = value
-                output = encoding_model(img_copy)
-                activation_differences[:, counter] = (output - activation).squeeze()
-                del img_copy, output
-            stds[:, i, j] = torch.std(activation_differences, dim=1)
-            del activation_differences
 
+def compute_mask(
+    image: torch.Tensor,
+    response: torch.Tensor,
+    encoding_model: torch.nn.Module,
+    num_different_pixels: int = 20,
+    threshold: float = 0.02,
+) -> Tuple:
+    """Compute a binary mask of pixels not influencing neural activation.
+
+    Present stimuli to the encoding model and compute activations.
+    After that, for each pixel, we carry out the following steps:
+        - For every image we produce its copy with a pixel changed to a specific
+          value from some test range.
+        - Every processed image is then presented to the encoding model.
+        - For each pixel, we compute activation for different pixel values across
+          the test range. By subtracting the original activation, we can measure
+          the standard deviation of these differences. (compare Kovacs 2021)
+
+    Args:
+        image (torch.Tensor): image tensor.
+        response (torch.Tensor): response tensor.
+        encoding_model (torch.nn.Module): encoding model.
+        num_different_pixels (int, optional): number of different pixel values
+            to use for computation of standard deviation. Defaults to 20.
+        threshold (float, optional): Binary threshold value for masking.
+            Defaults to 0.02.
+
+    Returns:
+        Tuple: Tuple of binary mask tensor and and pixel standard deviation
+            tensor. Both of shape (num_neurons, height, width).
+    """
+    pixel_standard_deviations = torch.empty(
+        size=(response.shape[0], image.shape[2], image.shape[3]), device="cuda"
+    )
+    with torch.no_grad():
+        for i in track(range(image.shape[2])):
+            for j in range(image.shape[3]):
+                activation_differences = torch.empty(
+                    size=(response.shape[0], num_different_pixels)
+                )
+                for counter, value in enumerate(
+                    np.linspace(0, 255, num_different_pixels)
+                ):
+                    img_copy = image
+                    img_copy[:, :, i, j] = value
+                    output = encoding_model(img_copy)
+                    activation_differences[:, counter] = (output - activation).squeeze()
+                    del img_copy, output
+                pixel_standard_deviations[:, i, j] = torch.std(
+                    activation_differences, dim=1
+                )
+                del activation_differences
+        mask = pixel_standard_deviations.ge(0.02)
+    return mask, pixel_standard_deviations
+
+
+mask, _ = compute_mask(image, response, encoding_model)
 # %%
-print(stds.shape)
+import matplotlib.pyplot as plt
+
+for i in range(10):
+    print(f"Max. value for this neuron is: {mask[i, :, :].max():.02f}")
+    plt.imshow(mask[i, :, :].cpu())
+    plt.colorbar()
+    plt.show()
 # %%
-print_cuda()
+one_mask = mask[1, :, :].reshape(1, 1, mask.shape[1], mask.shape[2])
+# %%
+one_mask = one_mask.int()
+one_mask.max()
+# %%
+imgs = images[0:64, :, :, :] * one_mask
+# %%
+images[0, :, :, :]
+#%%
+for i in range(5):
+    plt.imshow(images[i, :, :, :].cpu().squeeze())
+    plt.colorbar()
+    plt.show()
 # %%
