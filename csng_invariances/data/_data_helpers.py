@@ -3,11 +3,13 @@
 
 import numpy as np
 import torch
+from torch.cuda import is_available
 import torch.utils.data as utils
 import json
 
 from pathlib import Path
 from torchvision import transforms
+from rich import print
 
 from csng_invariances._neuralpredictors.data.samplers import RepeatsBatchSampler
 
@@ -206,11 +208,11 @@ def save_configs(configs, model_directory):
             json.dump(configs, outfile, indent=2)
 
 
-def load_configs(model_directory):
+def load_configs(model_directory: str) -> dict:
     """Load configs in given directory.
 
     Args:
-        model_directory (path): Path to directory in which model is stored.
+        model_directory (str): Path to directory in which model is stored.
 
     Returns:
         dict: Dictionary of sub_config dicts.
@@ -220,7 +222,34 @@ def load_configs(model_directory):
         if file.suffix == ".json":
             with open(file, "r") as content:
                 configs[file.stem] = json.load(content)
+    # adapt local path
+    new_paths = []
+    for path in configs["dataset_config"]["paths"]:
+        _, i = path.split("/csng_invariances")
+        p = str(Path.cwd()) + i
+        new_paths.append(p)
+    configs["dataset_config"]["paths"] = new_paths
+    return configs
+
+
+def adapt_config_to_machine(configs: dict) -> dict:
+    """Adapt config to that model can be run on machine.
+
+    Args:
+        configs (dict): Dictionary of config dictionaries
+
+    Returns:
+        dict: Dictionary of config dictionaries
+    """
+    # adapt device
     configs["trainer_config"]["device"] = torch.device(
-        "cuda" if configs["trainer_config"]["device"] == "cuda" else "cpu"
+        "cuda"
+        if configs["trainer_config"]["device"] == "cuda" and torch.cuda.is_available()
+        else "cpu"
+    )
+    configs["dataset_config"]["cuda"] = (
+        True
+        if torch.cuda.is_available() and configs["dataset_config"]["cuda"] is True
+        else False
     )
     return configs

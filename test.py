@@ -61,8 +61,9 @@ from pathlib import Path
 import torch
 
 # %%
+device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = 1
-cuda = True
+cuda = True if device == "cuda" else False
 batch_size = 32
 lurz_data_directory = Path.cwd() / "data" / "external" / "lurz2020"
 lurz_model_directory = Path.cwd() / "models" / "external" / "lurz2020"
@@ -80,10 +81,8 @@ images, responses = ds.get_dataset()
 # %%
 from csng_invariances.encoding import load_encoding_model
 
-print("loading encoding model")
-encoding_model = load_encoding_model(
-    "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
-)
+print("Loading encoding model.")
+encoding_model = load_encoding_model("./models/encoding/2021-11-12_17:00:58")
 # %%
 # select one image for mask analyzis
 image = images[0, :, :, :].reshape(1, 1, images.shape[2], images.shape[3])

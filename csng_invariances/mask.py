@@ -1,9 +1,14 @@
 # %%
+from os import makedirs
 import torch
 import torch.nn as nn
 from rich.progress import track
 from typing import Tuple
 import numpy as np
+from pathlib import Path
+from datetime import datetime
+
+from torch.nn.modules.container import T
 
 
 class Mask(nn.Module):
@@ -36,6 +41,7 @@ def compute_mask(
     image: torch.Tensor,
     response: torch.Tensor,
     encoding_model: torch.nn.Module,
+    device: str = None,
     num_different_pixels: int = 20,
     threshold: float = 0.02,
 ) -> Tuple:
@@ -48,25 +54,37 @@ def compute_mask(
         - Every processed image is then presented to the encoding model.
         - For each pixel, we compute activation for different pixel values across
           the test range. By subtracting the original activation, we can measure
-          the standard deviation of these differences. (compare Kovacs 2021)
+          the standard deviation of these differences.
+    Pixels, where a low standard deviation of activation was measured, have a
+    very low impact on the predicted activation. If these pixels were important,
+    changing them would also cause a change in predicted activation. So we would
+    get different values of activations and thus we would measure a higher standard
+    deviation. Pixels with low standard deviation can therefore be masked out from
+    the image. This approach is naive in a way that it assumes that pixels influence
+    activation independently.
+    (compare Kovacs 2021)
 
     Args:
         image (torch.Tensor): image tensor.
         response (torch.Tensor): response tensor.
         encoding_model (torch.nn.Module): encoding model.
+        device (str, optional): device. Defaults to none.
         num_different_pixels (int, optional): number of different pixel values
             to use for computation of standard deviation. Defaults to 20.
         threshold (float, optional): Binary threshold value for masking.
             Defaults to 0.02.
 
     Returns:
-        Tuple: Tuple of binary mask tensor and and pixel standard deviation
+        Tuple: Tuple of binary mask tensor and and pixel standard deviation (roi)
             tensor. Both of shape (num_neurons, height, width).
     """
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
     pixel_standard_deviations = torch.empty(
-        size=(response.shape[0], image.shape[2], image.shape[3]), device="cuda"
+        size=(response.shape[0], image.shape[2], image.shape[3]), device=device
     )
     with torch.no_grad():
+        activation = encoding_model(image)
         for i in track(range(image.shape[2])):
             for j in range(image.shape[3]):
                 activation_differences = torch.empty(
@@ -85,4 +103,20 @@ def compute_mask(
                 )
                 del activation_differences
         mask = pixel_standard_deviations.ge(threshold)
+    t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    mask_directory = Path.cwd() / "models" / "masks" / t
+    mask_directory.mkdir(parents=True, exist_ok=True)
+    roi_directory = Path.cwd() / "models" / "roi" / t
+    roi_directory.mkdir(parents=True, exist_ok=True)
+    np.save(mask_directory / "mask.npy", mask.detach().cpu().numpy())
+    np.save(
+        roi_directory / "pixel_standard_deviation.npy",
+        pixel_standard_deviations.detach().cpu().numpy(),
+    )
+    with open(mask_directory / "readme.md") as f:
+        f.write(
+            f"#Readme\n"
+            f"The mask was based on the pixel standard deviation in: "
+            f"{roi_directory}\n. The threshold used was {threshold}."
+        )
     return mask, pixel_standard_deviations

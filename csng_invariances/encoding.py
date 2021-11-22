@@ -488,6 +488,8 @@ def load_encoding_model(model_directory):
         model: Trained encoding model in evaluation state.
     """
     configs = load_configs(model_directory)
+    print(f"Model was trained on {configs['trainer_config']['device']}.\n")
+    configs = adapt_config_to_machine(configs)
     dataloaders = static_loaders(**configs["dataset_config"])
     model = se2d_fullgaussian2d(
         **configs["model_config"],
@@ -495,15 +497,14 @@ def load_encoding_model(model_directory):
         seed=configs["dataset_config"]["seed"],
     )
     model.load_state_dict(
-        torch.load(Path(model_directory) / "Pretrained_core_readout_lurz.pth")
+        torch.load(
+            Path(model_directory) / "Pretrained_core_readout_lurz.pth",
+            map_location=configs["trainer_config"]["device"],
+        )
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    training_device = configs["trainer_config"]["device"]
-    print(
-        f"The encoding model was trained on {training_device}. "
-        f"It is currently running on {device}."
-    )
     model.to(device)
+    print(f"Model runs in evaluation mode on {device}.")
     model.eval()
     return model
 
