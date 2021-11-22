@@ -3,7 +3,7 @@
 import wandb
 import torch
 import argparse
-import datetime
+from datetime import datetime
 import json
 import numpy as np
 
@@ -369,7 +369,7 @@ def encode(parsed_kwargs):
         lurz_trainer(model=model, dataloaders=dataloaders, **trainer_config)
 
         # Saving model (core + readout)
-        t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         readout_model_directory = Path.cwd() / "models" / "encoding" / t
         readout_model_directory.mkdir(parents=True, exist_ok=True)
         torch.save(
