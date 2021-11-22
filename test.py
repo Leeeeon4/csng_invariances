@@ -113,6 +113,14 @@ def compute_mask(
         - For each pixel, we compute activation for different pixel values across
           the test range. By subtracting the original activation, we can measure
           the standard deviation of these differences. (compare Kovacs 2021)
+    Pixels, where a low standard deviation of activation was measured, have a
+    very low impact on the predicted activation. If these pixels were important,
+    changing them would also cause a change in predicted activation. So we would
+    get different values of activations and thus we would measure a higher standard
+    deviation. Pixels with low standard deviation can therefore be masked out from
+    the image. This approach is naive in a way that it assumes that pixels influence
+    activation independently. In order to get a more continuous mask, we apply the
+    Gaussian blur to the image.
 
     Args:
         image (torch.Tensor): image tensor.
