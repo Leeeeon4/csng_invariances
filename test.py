@@ -56,6 +56,7 @@
 # %%
 from typing import Tuple
 from PIL.Image import new
+from numpy.lib.type_check import imag
 from rich import print
 from csng_invariances.data.datasets import Lurz2021Dataset
 from pathlib import Path
@@ -185,12 +186,13 @@ from rich import print
 import matplotlib.pyplot as plt
 from csng_invariances.encoding import load_encoding_model
 from csng_invariances.losses.generator import SelectedNeuronActivation
+from csng_invariances.data._data_helpers import scale_tensor_to_0_1
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 encoding_model = load_encoding_model("./models/encoding/2021-11-12_17:00:58")
 # freeze model
-# for param in encoding_model.parameters():
-#     param.requires_grad = False
+for param in encoding_model.parameters():
+    param.requires_grad = False
 #%%
 data = torch.randint(
     0,
@@ -200,6 +202,7 @@ data = torch.randint(
     device=device,
     requires_grad=True,
 )
+print(data)
 criterion = SelectedNeuronActivation()
 #%%
 def gradient_ascent(
@@ -207,9 +210,12 @@ def gradient_ascent(
     encoding_model: torch.nn.Module,
     image: torch.Tensor,
     neuron_idx: int,
-    lr: float = 1000000,
+    lr: float = 1,
 ) -> torch.Tensor:
+    with torch.no_grad():
+        image /= image.max()
     loss = criterion(encoding_model(image), neuron_idx)
+    # print(loss)
     loss.backward()
     # print(image.max())
     # print(image.grad.max())
@@ -226,7 +232,7 @@ new_img = gradient_ascent(criterion, encoding_model, data, 5)
 #     f"Data: {data.sum()}\n"
 #     f"Image: {new_img.sum()}"
 # )
-for i in range(50):
+for i in range(500):
     old_img = new_img
     new_img = gradient_ascent(criterion, encoding_model, new_img, 5)
     # print(
@@ -234,9 +240,11 @@ for i in range(50):
     #     f"New image: {new_img.sum()}\n"
     #     #f"Difference: {(new_img - old_img).sum()}"
     # )
-    plt.imshow(new_img.detach().numpy().squeeze())
-    plt.show()
+    if i % 100 == 0:
+        plt.imshow(new_img.detach().numpy().squeeze())
+        plt.show()
 #
+# %%
 # %%
 
 # %%
