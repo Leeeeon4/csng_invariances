@@ -210,29 +210,30 @@ def gradient_ascent(
     encoding_model: torch.nn.Module,
     image: torch.Tensor,
     neuron_idx: int,
-    lr: float = 1,
+    lr: float = 0.01,
 ) -> torch.Tensor:
     with torch.no_grad():
         image /= image.max()
     loss = criterion(encoding_model(image), neuron_idx)
     # print(loss)
     loss.backward()
+    # print(image.grad.sum())
     # print(image.max())
     # print(image.grad.max())
     # print(image.grad.sum())
     # print(image.grad.shape)
     with torch.no_grad():
-        image += image.grad * lr
+        image += image.grad * image.max() / image.grad.max() * lr
     image.grad = None
     return image
 
 
-new_img = gradient_ascent(criterion, encoding_model, data, 5)
+new_img = gradient_ascent(criterion, encoding_model, data, neuron_idx=5, lr=0.05)
 # print(
 #     f"Data: {data.sum()}\n"
 #     f"Image: {new_img.sum()}"
 # )
-for i in range(500):
+for i in range(50):
     old_img = new_img
     new_img = gradient_ascent(criterion, encoding_model, new_img, 5)
     # print(
@@ -240,7 +241,7 @@ for i in range(500):
     #     f"New image: {new_img.sum()}\n"
     #     #f"Difference: {(new_img - old_img).sum()}"
     # )
-    if i % 100 == 0:
+    if i % 10 == 0:
         plt.imshow(new_img.detach().numpy().squeeze())
         plt.show()
 #
