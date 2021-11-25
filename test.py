@@ -183,10 +183,10 @@ import torch
 # %%
 import torch
 from rich import print
+from rich.progress import track
 import matplotlib.pyplot as plt
 from csng_invariances.encoding import load_encoding_model
-from csng_invariances.losses.generator import SelectedNeuronActivation
-from csng_invariances.data._data_helpers import scale_tensor_to_0_1
+from csng_invariances.losses.loss_modules import SelectedNeuronActivation
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 encoding_model = load_encoding_model("./models/encoding/2021-11-12_17:00:58")
@@ -202,50 +202,113 @@ data = torch.randint(
     device=device,
     requires_grad=True,
 )
-print(data)
 criterion = SelectedNeuronActivation()
 #%%
-def gradient_ascent(
+def gradient_ascent_step(
     criterion: torch.nn.Module,
     encoding_model: torch.nn.Module,
     image: torch.Tensor,
     neuron_idx: int,
     lr: float = 0.01,
+    *args: int,
+    **kwargs: int,
 ) -> torch.Tensor:
     with torch.no_grad():
         image /= image.max()
     loss = criterion(encoding_model(image), neuron_idx)
-    # print(loss)
     loss.backward()
-    # print(image.grad.sum())
-    # print(image.max())
-    # print(image.grad.max())
-    # print(image.grad.sum())
-    # print(image.grad.shape)
+    # Gradient ascent step.
+    # The scaled and then multiplied by the learning rate.
     with torch.no_grad():
         image += image.grad * image.max() / image.grad.max() * lr
     image.grad = None
     return image
 
 
-new_img = gradient_ascent(criterion, encoding_model, data, neuron_idx=5, lr=0.05)
-# print(
-#     f"Data: {data.sum()}\n"
-#     f"Image: {new_img.sum()}"
-# )
-for i in range(50):
-    old_img = new_img
-    new_img = gradient_ascent(criterion, encoding_model, new_img, 5)
-    # print(
-    #     f"Old image: {old_img.sum()}\n"
-    #     f"New image: {new_img.sum()}\n"
-    #     #f"Difference: {(new_img - old_img).sum()}"
-    # )
-    if i % 10 == 0:
-        plt.imshow(new_img.detach().numpy().squeeze())
-        plt.show()
-#
 # %%
-# %%
+def mei(
+    criterion: torch.nn.Module,
+    encoding_model: torch.nn.Module,
+    image: torch.Tensor,
+    selected_neuron_indicies: list,
+    lr: float = None,
+    epochs: int = 200,
+    show: bool = False,
+    *args: int,
+    **kwargs: int,
+) -> torch.Tensor:
+    meis = {}
+    for counter, neuron in enumerate(selected_neuron_indicies):
+        trainer_config = {
+            "criterion": criterion,
+            "encoding_model": encoding_model,
+            "epochs": epochs,
+            "neuron_idx": neuron,
+        }
+        if lr is not None:
+            trainer_config["lr"] = lr
+        old_image = image.detach().clone()
+        old_image.requires_grad = True
+        new_image = gradient_ascent_step(image=old_image, **trainer_config)
+        for epoch in track(
+            range(epochs),
+            total=epochs,
+            description=f"Neuron {counter}/{len(selected_neuron_indicies)}: ",
+        ):
+            new_image = gradient_ascent_step(image=new_image, **trainer_config)
+            if show and epoch % 10 == 0:
+                fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
+                im = ax.imshow(new_image.detach().numpy().squeeze())
+                ax.set_title(f"Image neuron {neuron} after {epoch} epochs")
+                plt.colorbar(im)
+                plt.tight_layout()
+                plt.show(block=False)
+                plt.pause(0.1)
+                plt.close()
+        meis[neuron] = new_image
+        if show:
+            fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
+            im = ax.imshow(new_image.detach().numpy().squeeze())
+            ax.set_title(f"Final image neuron {neuron}")
+            plt.colorbar(im)
+            plt.tight_layout()
+            plt.show(block=False)
+            plt.pause(3)
+            plt.close("all")
+    return meis
 
+
+# %%
+selected_neuron_indicies = [0, 1, 10, 523]
+meis = mei(
+    criterion=criterion,
+    encoding_model=encoding_model,
+    image=data,
+    selected_neuron_indicies=selected_neuron_indicies,
+    epochs=150,
+    show=True,
+)
+# #%%
+# new_img = gradient_ascent_step(criterion, encoding_model, data, neuron_idx=5, lr=0.05)
+# # print(
+# #     f"Data: {data.sum()}\n"
+# #     f"Image: {new_img.sum()}"
+# # )
+# for i in range(50):
+#     old_img = new_img
+#     new_img = gradient_ascent_step(criterion, encoding_model, new_img, 5)
+#     # print(
+#     #     f"Old image: {old_img.sum()}\n"
+#     #     f"New image: {new_img.sum()}\n"
+#     #     #f"Difference: {(new_img - old_img).sum()}"
+#     # )
+#     if i % 10 == 0:
+#         plt.imshow(new_img.detach().numpy().squeeze())
+#         plt.show()
+# #
+# %%
+# print(meis)
+# # %%
+# plt.imshow(meis[10].detach().numpy().squeeze())
+# plt.show()
 # %%
