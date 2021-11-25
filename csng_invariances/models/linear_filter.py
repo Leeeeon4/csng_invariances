@@ -182,6 +182,7 @@ class Filter:
         self._fil_4d()
         if reports:
             print(f"Reports are stored at {self.report_dir}")
+            # TODO save as numpy array.
             with open(self.report_dir / "Correlations.csv", "w") as file:
                 for key in self.neural_correlations:
                     file.write("%s,%s\n" % (key, self.neural_correlations[key]))
@@ -193,7 +194,7 @@ class Filter:
                         "evaluated_filter.npy contains a 4D representation "
                         "of a linear filter used to estimate the linear "
                         "receptive field of neurons.\nThe dimension are: "
-                        f"(neuron, channels, dim1, dim2): {self.fil.shape}"
+                        f"(neuron, channels, height, width): {self.fil.shape}"
                     )
                 )
         print("Reporting procedure concluded.")
