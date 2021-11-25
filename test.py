@@ -1,314 +1,164 @@
-"""Testing scipt"""
 #%%
-# from os import wait
-# from rich import print
-# import torch
-
-# from csng_invariances.encoding import *
-
-# from csng_invariances.models.generator import *
-# from csng_invariances.models.gan import *
-
-# from csng_invariances.training.generator import NaiveTrainer
-
-# %%
-# batch_size = 64
-# batches = 100
-# epochs = 10
-
-# # %%
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-# encoding_model = load_encoding_model(
-#     "/home/leon/csng_invariances/models/encoding/2021-11-04_11:39:48"
-# )
-# # %%
-# # i dont feel like loading data, so here is fake data of the right dimension.
-# images = torch.randn(size=(batch_size, 1, 36, 64), device=device, dtype=torch.float)
-# responses = torch.randn(size=(batch_size, 5335), device=device, dtype=torch.float)
-# # Config
-# config = {
-#     "latent_space_dimension": 128,
-#     "batch_size": batch_size,
-#     "layer_growth": 2,
-#     "device": device,
-#     "batches": batches,
-#     "epochs": epochs,
-# }
-# # %%
-# generator_model = GrowingLinearGenerator(images=images, responses=responses, **config)
-# # %%
-# data = [generator_model.sample_from_normal() for _ in range(batches)]
-# # %%
-# trainer = NaiveTrainer(
-#     generator_model=generator_model, encoding_model=encoding_model, data=data, **config
-# )
-# for i in range(5):
-#     print(
-#         f"\n"
-#         f"===================================================================\n"
-#         f"==================Training Generator for Neuron {i}==================\n"
-#         f"===================================================================\n"
-#         f"\n"
-#     )
-#     trainer.train(i)
-# %%
-################## work on mask ##################
-# %%
-from typing import Tuple
-from PIL.Image import new
-from numpy.lib.type_check import imag
-from rich import print
-from csng_invariances.data.datasets import Lurz2021Dataset
-from pathlib import Path
-import torch
-
-# %%
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-# seed = 1
-# cuda = True if device == "cuda" else False
-# batch_size = 32
-# lurz_data_directory = Path.cwd() / "data" / "external" / "lurz2020"
-# lurz_model_directory = Path.cwd() / "models" / "external" / "lurz2020"
-# lurz_model_path = lurz_model_directory / "transfer_model.pth.tar"
-# dataset_config = {
-#     "paths": [str(lurz_data_directory / "static20457-5-9-preproc0")],
-#     "batch_size": batch_size,
-#     "seed": seed,
-#     "cuda": cuda,
-#     "normalize": True,
-#     "exclude": "images",
-# }
-# ds = Lurz2021Dataset(dataset_config)
-# images, responses = ds.get_dataset()
-# %%
-# # %%
-# # select one image for mask analyzis
-# image = images[0, :, :, :].reshape(1, 1, images.shape[2], images.shape[3])
-# response = responses[0, :]
-# activation = encoding_model(image)
-
-# # %%
-# import numpy as np
-# from rich.progress import track
-# from typing import Tuple
-
-
-# def compute_mask(
-#     image: torch.Tensor,
-#     response: torch.Tensor,
-#     encoding_model: torch.nn.Module,
-#     num_different_pixels: int = 20,
-#     threshold: float = 0.02,
-# ) -> Tuple:
-#     """Compute a binary mask of pixels not influencing neural activation.
-
-#     Present stimuli to the encoding model and compute activations.
-#     After that, for each pixel, we carry out the following steps:
-#         - For every image we produce its copy with a pixel changed to a specific
-#           value from some test range.
-#         - Every processed image is then presented to the encoding model.
-#         - For each pixel, we compute activation for different pixel values across
-#           the test range. By subtracting the original activation, we can measure
-#           the standard deviation of these differences. (compare Kovacs 2021)
-#     Pixels, where a low standard deviation of activation was measured, have a
-#     very low impact on the predicted activation. If these pixels were important,
-#     changing them would also cause a change in predicted activation. So we would
-#     get different values of activations and thus we would measure a higher standard
-#     deviation. Pixels with low standard deviation can therefore be masked out from
-#     the image. This approach is naive in a way that it assumes that pixels influence
-#     activation independently. In order to get a more continuous mask, we apply the
-#     Gaussian blur to the image.
-
-#     Args:
-#         image (torch.Tensor): image tensor.
-#         response (torch.Tensor): response tensor.
-#         encoding_model (torch.nn.Module): encoding model.
-#         num_different_pixels (int, optional): number of different pixel values
-#             to use for computation of standard deviation. Defaults to 20.
-#         threshold (float, optional): Binary threshold value for masking.
-#             Defaults to 0.02.
-
-#     Returns:
-#         Tuple: Tuple of binary mask tensor and and pixel standard deviation
-#             tensor. Both of shape (num_neurons, height, width).
-#     """
-#     pixel_standard_deviations = torch.empty(
-#         size=(response.shape[0], image.shape[2], image.shape[3]), device="cuda"
-#     )
-#     with torch.no_grad():
-#         for i in track(range(image.shape[2])):
-#             for j in range(image.shape[3]):
-#                 activation_differences = torch.empty(
-#                     size=(response.shape[0], num_different_pixels)
-#                 )
-#                 for counter, value in enumerate(
-#                     np.linspace(0, 255, num_different_pixels)
-#                 ):
-#                     img_copy = image
-#                     img_copy[:, :, i, j] = value
-#                     output = encoding_model(img_copy)
-#                     activation_differences[:, counter] = (output - activation).squeeze()
-#                     del img_copy, output
-#                 pixel_standard_deviations[:, i, j] = torch.std(
-#                     activation_differences, dim=1
-#                 )
-#                 del activation_differences
-#         mask = pixel_standard_deviations.ge(0.02)
-#     return mask, pixel_standard_deviations
-
-
-# mask, _ = compute_mask(image, response, encoding_model)
-# # %%
-# import matplotlib.pyplot as plt
-
-# for i in range(10):
-#     print(f"Max. value for this neuron is: {mask[i, :, :].max():.02f}")
-#     plt.imshow(mask[i, :, :].cpu())
-#     plt.colorbar()
-#     plt.show()
-# # %%
-# one_mask = mask[1, :, :].reshape(1, 1, mask.shape[1], mask.shape[2])
-# # %%
-# one_mask = one_mask.int()
-# one_mask.max()
-# # %%
-# imgs = images[0:64, :, :, :] * one_mask
-# # %%
-# images[0, :, :, :]
-# #%%
-# for i in range(5):
-#     plt.imshow(images[i, :, :, :].cpu().squeeze())
-#     plt.colorbar()
-#     plt.show()
-# %%
-import torch
-from rich import print
-from rich.progress import track
-import matplotlib.pyplot as plt
 from csng_invariances.encoding import load_encoding_model
-from csng_invariances.losses.loss_modules import SelectedNeuronActivation
+from csng_invariances.training.mei import mei
+
+encoding_model = load_encoding_model(
+    "/Users/leongorissen/csng_invariances/models/encoding/2021-11-12_17:00:58"
+)
+
+# %%
+from rich import print
+from pandas import read_csv
+import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-encoding_model = load_encoding_model("./models/encoding/2021-11-12_17:00:58")
-# freeze model
-for param in encoding_model.parameters():
-    param.requires_grad = False
-#%%
-data = torch.randint(
-    0,
-    255,
-    size=(1, 1, 36, 64),
-    dtype=torch.float,
-    device=device,
-    requires_grad=True,
+csv = read_csv(
+    "/Users/leongorissen/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-29_10:31:45/Correlations.csv"
 )
+data = [float(csv.columns[1])]
+for i in csv.iloc(axis=1)[1].to_list():
+    data.append(i)
+
+data_tensor = torch.Tensor(data, device=device)
+print(data_tensor)
+# works as loading function
+# %%
+from csng_invariances.encoding import load_encoding_model
+from csng_invariances.data._data_helpers import load_configs, adapt_config_to_machine
+from csng_invariances.data.datasets import Lurz2021Dataset
+from csng_invariances.encoding import get_single_neuron_correlation as dnn_corrs
+
+model_directory = (
+    "/Users/leongorissen/csng_invariances/models/encoding/2021-11-12_17:00:58"
+)
+encoding_model = load_encoding_model(model_directory)
+configs = load_configs(model_directory)
+configs = adapt_config_to_machine(configs)
+ds = Lurz2021Dataset(dataset_config=configs["dataset_config"])
+images, responses = ds.get_dataset()
+dnn_single_neuron_correlations = dnn_corrs(
+    encoding_model,
+    images,
+    responses,
+    batch_size=configs["dataset_config"]["batch_size"],
+)
+print(dnn_single_neuron_correlations)
+
+# %%
+print(dnn_single_neuron_correlations.shape)
+# %%
+print(data_tensor.shape)
+# %%
+from csng_invariances.losses.loss_modules import SelectedNeuronActivation
+
+# %%
+def gaussian_white_noise_image(size: Tuple[int], device: str = None) -> torch.Tensor:
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    gwni = torch.randint(
+        low=0,
+        high=255,
+        size=size,
+        dtype=torch.float,
+        device=device,
+        requires_grad=True,
+    )
+    return gwni
+
+
+class LatentVector:
+    def __init__(
+        self,
+        num_vectors: int = 1_000_000,
+        latent_space_dimension: int = 128,
+        device: str = None,
+    ) -> None:
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.vector = torch.empty(
+            size=(num_vectors, latent_space_dimension),
+            device=device,
+            dtype=torch.float,
+            requires_grad=True,
+        )
+
+
+def normal_latent_vector(
+    num_vectors: int = 1_000_000,
+    latent_space_dimension: int = 128,
+    device: str = None,
+    mean: float = 0,
+    std: float = 1,
+) -> torch.Tensor:
+    """Returns a latent tensor with gradient drawn form normal distribution.
+
+    Args:
+        num_vectors (int, optional): Number of Vectors. Defaults to 1_000_000.
+        latent_space_dimension (int, optional): Dimensionality of Vectors. Defaults to 128.
+        device (str, optional): Device, if none tries to default to cuda. Defaults to None.
+        mean (float, optional): mean of normal distribution to sample from. Defaults to 0.
+        std (float, optional): std of normal distribution to sample from. Defaults to 1.
+
+    Returns:
+        torch.Tensor: Tensor of size (num_vectors, latent_space_dimension) sampled
+            from normal distribution with mean: mean and std: std.
+    """
+    tensor = LatentVector(num_vectors, latent_space_dimension, device)
+    return torch.nn.init.normal_(tensor.vector, mean, std)
+
+
+def uniform_latent_vector(
+    num_vectors: int = 1_000_000,
+    latent_space_dimension: int = 128,
+    device: str = None,
+    low: float = -2,
+    high: float = 2,
+) -> torch.Tensor:
+    """Returns a latent tensor with gradient drawn form uniform distribution.
+
+    Args:
+        num_vectors (int, optional): Number of Vectors. Defaults to 1_000_000.
+        latent_space_dimension (int, optional): Dimensionality of Vectors. Defaults to 128.
+        device (str, optional): Device, if none tries to default to cuda. Defaults to None.
+        low (float, optional): low of uniform distribution to sample from. Defaults to 0.
+        high (float, optional): high of uniform distribution to sample from. Defaults to 1.
+
+    Returns:
+        torch.Tensor: Tensor of size (num_vectors, latent_space_dimension) sampled
+            from normal distribution with mean: mean and std: std.
+    """
+    tensor = LatentVector(num_vectors, latent_space_dimension, device)
+    return torch.nn.init.uniform_(tensor.vector, low, high)
+
+
+# %%
+
+
 criterion = SelectedNeuronActivation()
-#%%
-def gradient_ascent_step(
-    criterion: torch.nn.Module,
-    encoding_model: torch.nn.Module,
-    image: torch.Tensor,
-    neuron_idx: int,
-    lr: float = 0.01,
-    *args: int,
-    **kwargs: int,
-) -> torch.Tensor:
-    with torch.no_grad():
-        image /= image.max()
-    loss = criterion(encoding_model(image), neuron_idx)
-    loss.backward()
-    # Gradient ascent step.
-    # The scaled and then multiplied by the learning rate.
-    with torch.no_grad():
-        image += image.grad * image.max() / image.grad.max() * lr
-    image.grad = None
-    return image
-
-
+gwni = gaussian_white_noise_image(size=(1, 1, 36, 64))
 # %%
-def mei(
-    criterion: torch.nn.Module,
-    encoding_model: torch.nn.Module,
-    image: torch.Tensor,
-    selected_neuron_indicies: list,
-    lr: float = None,
-    epochs: int = 200,
-    show: bool = False,
-    *args: int,
-    **kwargs: int,
-) -> torch.Tensor:
-    meis = {}
-    for counter, neuron in enumerate(selected_neuron_indicies):
-        trainer_config = {
-            "criterion": criterion,
-            "encoding_model": encoding_model,
-            "epochs": epochs,
-            "neuron_idx": neuron,
-        }
-        if lr is not None:
-            trainer_config["lr"] = lr
-        old_image = image.detach().clone()
-        old_image.requires_grad = True
-        new_image = gradient_ascent_step(image=old_image, **trainer_config)
-        for epoch in track(
-            range(epochs),
-            total=epochs,
-            description=f"Neuron {counter}/{len(selected_neuron_indicies)}: ",
-        ):
-            new_image = gradient_ascent_step(image=new_image, **trainer_config)
-            if show and epoch % 10 == 0:
-                fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
-                im = ax.imshow(new_image.detach().numpy().squeeze())
-                ax.set_title(f"Image neuron {neuron} after {epoch} epochs")
-                plt.colorbar(im)
-                plt.tight_layout()
-                plt.show(block=False)
-                plt.pause(0.1)
-                plt.close()
-        meis[neuron] = new_image
-        if show:
-            fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
-            im = ax.imshow(new_image.detach().numpy().squeeze())
-            ax.set_title(f"Final image neuron {neuron}")
-            plt.colorbar(im)
-            plt.tight_layout()
-            plt.show(block=False)
-            plt.pause(3)
-            plt.close("all")
-    return meis
+from csng_invariances.select_neurons import score, select_neurons
+from csng_invariances.training.mei import mei
 
+selection_score = score(dnn_single_neuron_correlations, data_tensor)
+select_neuron_indicies = select_neurons(selection_score, 5)
+# %%
+meis = mei(criterion, encoding_model, gwni, select_neuron_indicies, lr=0.1)
+# %%
+print(meis)
+# %%
+import matplotlib.pyplot as plt
 
-# %%
-selected_neuron_indicies = [0, 1, 10, 523]
-meis = mei(
-    criterion=criterion,
-    encoding_model=encoding_model,
-    image=data,
-    selected_neuron_indicies=selected_neuron_indicies,
-    epochs=150,
-    show=True,
-)
-# #%%
-# new_img = gradient_ascent_step(criterion, encoding_model, data, neuron_idx=5, lr=0.05)
-# # print(
-# #     f"Data: {data.sum()}\n"
-# #     f"Image: {new_img.sum()}"
-# # )
-# for i in range(50):
-#     old_img = new_img
-#     new_img = gradient_ascent_step(criterion, encoding_model, new_img, 5)
-#     # print(
-#     #     f"Old image: {old_img.sum()}\n"
-#     #     f"New image: {new_img.sum()}\n"
-#     #     #f"Difference: {(new_img - old_img).sum()}"
-#     # )
-#     if i % 10 == 0:
-#         plt.imshow(new_img.detach().numpy().squeeze())
-#         plt.show()
-# #
-# %%
-# print(meis)
-# # %%
-# plt.imshow(meis[10].detach().numpy().squeeze())
-# plt.show()
+for key, value in meis.items():
+    fig, ax = plt.subplots(figsize=(3.2, 1.8))
+    image = value.detach().numpy().squeeze()
+    image += abs(image.min())
+    image /= image.max()
+    im = ax.imshow(image, cmap="gray")
+    ax.set_title(f"MEI of neuron {key}")
+    plt.colorbar(im)
+    plt.tight_layout()
+    plt.show()
+    plt.pause(2)
+    plt.close()
 # %%

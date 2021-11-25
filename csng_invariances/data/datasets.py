@@ -727,3 +727,82 @@ class Lurz2021Dataset(NeuralDataset):
                 dls[k][data_key] = loaders[k]
 
         return dls
+
+
+def gaussian_white_noise_image(size: Tuple[int], device: str = None) -> torch.Tensor:
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    gwni = torch.randint(
+        low=0,
+        high=255,
+        size=size,
+        dtype=torch.float,
+        device=device,
+        requires_grad=True,
+    )
+    return gwni
+
+
+class LatentVector:
+    def __init__(
+        self,
+        num_vectors: int = 1_000_000,
+        latent_space_dimension: int = 128,
+        device: str = None,
+    ) -> None:
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.vector = torch.empty(
+            size=(num_vectors, latent_space_dimension),
+            device=device,
+            dtype=torch.float,
+            requires_grad=True,
+        )
+
+
+def normal_latent_vector(
+    num_vectors: int = 1_000_000,
+    latent_space_dimension: int = 128,
+    device: str = None,
+    mean: float = 0,
+    std: float = 1,
+) -> torch.Tensor:
+    """Returns a latent tensor with gradient drawn form normal distribution.
+
+    Args:
+        num_vectors (int, optional): Number of Vectors. Defaults to 1_000_000.
+        latent_space_dimension (int, optional): Dimensionality of Vectors. Defaults to 128.
+        device (str, optional): Device, if none tries to default to cuda. Defaults to None.
+        mean (float, optional): mean of normal distribution to sample from. Defaults to 0.
+        std (float, optional): std of normal distribution to sample from. Defaults to 1.
+
+    Returns:
+        torch.Tensor: Tensor of size (num_vectors, latent_space_dimension) sampled
+            from normal distribution with mean: mean and std: std.
+    """
+    tensor = LatentVector(num_vectors, latent_space_dimension, device)
+    return torch.nn.init.normal_(tensor.vector, mean, std)
+
+
+def uniform_latent_vector(
+    num_vectors: int = 1_000_000,
+    latent_space_dimension: int = 128,
+    device: str = None,
+    low: float = -2,
+    high: float = 2,
+) -> torch.Tensor:
+    """Returns a latent tensor with gradient drawn form uniform distribution.
+
+    Args:
+        num_vectors (int, optional): Number of Vectors. Defaults to 1_000_000.
+        latent_space_dimension (int, optional): Dimensionality of Vectors. Defaults to 128.
+        device (str, optional): Device, if none tries to default to cuda. Defaults to None.
+        low (float, optional): low of uniform distribution to sample from. Defaults to 0.
+        high (float, optional): high of uniform distribution to sample from. Defaults to 1.
+
+    Returns:
+        torch.Tensor: Tensor of size (num_vectors, latent_space_dimension) sampled
+            from normal distribution with mean: mean and std: std.
+    """
+    tensor = LatentVector(num_vectors, latent_space_dimension, device)
+    return torch.nn.init.uniform_(tensor.vector, low, high)

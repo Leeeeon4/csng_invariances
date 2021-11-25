@@ -182,7 +182,7 @@ class Filter:
         self._fil_4d()
         if reports:
             print(f"Reports are stored at {self.report_dir}")
-            # TODO save as numpy array.
+            # TODO save as numpy array to data/preprocessed/linear_filter/correlations.npy.
             with open(self.report_dir / "Correlations.csv", "w") as file:
                 for key in self.neural_correlations:
                     file.write("%s,%s\n" % (key, self.neural_correlations[key]))

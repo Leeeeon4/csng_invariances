@@ -7,6 +7,8 @@ import argparse
 
 from pathlib import Path
 from rich import print
+from pandas import read_csv
+from numpy import load
 
 import csng_invariances.data.antolik2016 as al
 import csng_invariances.data.lurz2020 as lu
@@ -185,6 +187,28 @@ def linear_receptive_field_argparse(parser):
     )
     kwargs = parser.parse_args()
     return vars(kwargs)
+
+
+def load_linear_filter_single_neuron_correlations(path: str) -> torch.Tensor:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    try:
+        if Path(path).suffix == ".csv":
+            csv = read_csv(path)
+            data = [float(csv.columns[1])]
+            for i in csv.iloc(axis=1)[1].to_list():
+                data.append(i)
+            data_tensor = torch.Tensor(data, device=device)
+        elif Path(path).suffix == ".npy":
+            data = load(path)
+            data_tensor = torch.from_numpy(data)
+            data_tensor.to(device)
+    except Exception:
+        print(
+            "An error occured. The file could not be loaded. Is the path correct? "
+            "Is it either a csv or a npy file?"
+        )
+    
+
 
 
 if __name__ == "__main__":
