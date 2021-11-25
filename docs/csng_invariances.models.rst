@@ -9,10 +9,10 @@ csng\_invariances.models package
 Submodules
 ----------
 
-csng\_invariances.models.discriminator module
----------------------------------------------
+csng\_invariances.models.encoding module
+----------------------------------------
 
-.. automodule:: csng_invariances.models.discriminator
+.. automodule:: csng_invariances.models.encoding
    :members:
    :undoc-members:
    :show-inheritance:
@@ -29,6 +29,14 @@ csng\_invariances.models.generator module
 -----------------------------------------
 
 .. automodule:: csng_invariances.models.generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.models.linear\_filter module
+----------------------------------------------
+
+.. automodule:: csng_invariances.models.linear_filter
    :members:
    :undoc-members:
    :show-inheritance:

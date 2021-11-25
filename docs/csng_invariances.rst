@@ -12,10 +12,10 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   csng_invariances.datasets
+   csng_invariances.data
+   csng_invariances.losses
    csng_invariances.models
    csng_invariances.training
-   csng_invariances.utility
 
 Submodules
 ----------
@@ -28,6 +28,22 @@ csng\_invariances.encoding module
    :undoc-members:
    :show-inheritance:
 
+csng\_invariances.generation module
+-----------------------------------
+
+.. automodule:: csng_invariances.generation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.invariances module
+------------------------------------
+
+.. automodule:: csng_invariances.invariances
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 csng\_invariances.linear\_receptive\_field module
 -------------------------------------------------
 
@@ -36,10 +52,18 @@ csng\_invariances.linear\_receptive\_field module
    :undoc-members:
    :show-inheritance:
 
-csng\_invariances.pick\_neurons module
---------------------------------------
+csng\_invariances.mask module
+-----------------------------
 
-.. automodule:: csng_invariances.pick_neurons
+.. automodule:: csng_invariances.mask
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.select\_neurons module
+----------------------------------------
+
+.. automodule:: csng_invariances.select_neurons
    :members:
    :undoc-members:
    :show-inheritance:
