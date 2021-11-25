@@ -81,7 +81,7 @@ def mei(
     """
     meis = {}
     t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-    meis_directoy = Path.cwd() / "data" / "processes" / "MEIs" / t
+    meis_directoy = Path.cwd() / "data" / "processed" / "MEIs" / t
     meis_directoy.mkdir(parents=True, exist_ok=True)
     for counter, neuron in enumerate(selected_neuron_indicies):
         trainer_config = {
