@@ -2,14 +2,13 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import datetime
 import torch
 import torchvision
 
 from numpy.linalg import pinv
 from concurrent.futures import ProcessPoolExecutor
+from csng_invariances._utils.utlis import string_time
 from rich import print
 from rich.progress import track
 from pathlib import Path
@@ -89,7 +88,7 @@ class Filter:
             self._compute_filter = self._normal_filter
 
         # instantiate attributes
-        self.time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+        self.time = string_time()
         self.model_dir = Path.cwd() / "models" / "linear_filter" / self.time
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self.report_dir = None
@@ -466,7 +465,7 @@ class Hyperparametersearch:
         self.neurons = np.array(list(range(self.neuron_count))).reshape(
             self.neuron_count, 1
         )
-        self.time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+        self.time = string_time
 
     def _one_hyperparameter(self, reg_factor):
         """Compute linear filter for one regularization factor

@@ -7,11 +7,12 @@ _, c, w, h = images.shape
 """
 
 from pathlib import Path
-from datetime import datetime
 import torch
 from rich.progress import track
 import matplotlib.pyplot as plt
 from numpy import save
+
+from csng_invariances._utils.utlis import string_time
 
 
 def naive_gradient_ascent_step(
@@ -80,7 +81,7 @@ def mei(
         dict: Dictionary of neuron_idx and the associated MEI.
     """
     meis = {}
-    t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    t = string_time()
     meis_directoy = Path.cwd() / "data" / "processed" / "MEIs" / t
     meis_directoy.mkdir(parents=True, exist_ok=True)
     for counter, neuron in enumerate(selected_neuron_indicies):

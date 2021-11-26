@@ -3,13 +3,13 @@
 import wandb
 import torch
 import argparse
-from datetime import datetime
 import json
 import numpy as np
 
 from rich import print
 from rich.progress import track
 from pathlib import Path
+from csng_invariances._utils.utlis import string_time
 
 from csng_invariances.data.lurz2020 import download_lurz2020_data, static_loaders
 from csng_invariances.models.encoding import (
@@ -369,7 +369,7 @@ def encode(parsed_kwargs):
         lurz_trainer(model=model, dataloaders=dataloaders, **trainer_config)
 
         # Saving model (core + readout)
-        t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        t = string_time()
         readout_model_directory = Path.cwd() / "models" / "encoding" / t
         readout_model_directory.mkdir(parents=True, exist_ok=True)
         torch.save(
@@ -559,6 +559,12 @@ def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwa
             responses[:, neuron], predictions[:, neuron]
         )[0, 1]
         single_neuron_correlations[neuron] = single_neuron_correlation
+
+    # TODO Save single neuron correlation
+    t = string_time()
+    directory = Path.cwd() / "reports" / "encoding" / "single_neuron_correlations" / t
+    np.save()
+    # TODO save with torch.save as single_neuron_correlations.pt
     return single_neuron_correlations
 
 

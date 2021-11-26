@@ -3,15 +3,15 @@
 import torch
 import torch.optim as optim
 import wandb
-import datetime
 
 from rich import print
 from rich.progress import track
 from pathlib import Path
+from csng_invariances._utils.utlis import string_time
 
 from csng_invariances.data._data_helpers import save_configs
 from csng_invariances.models.gan import ComputeModel
-from csng_invariances.losses.generator import SelectedNeuronActivation
+from csng_invariances.layers.loss_function import SelectedNeuronActivation
 
 
 class Trainer:
@@ -89,7 +89,7 @@ class NaiveTrainer(Trainer):
                 f"{round(abs(running_loss/(self.batches*self.batch_size)),5)}"
             )
             running_loss = 0.0
-        t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        t = string_time()
         generator_model_directory = Path.cwd() / "models" / "generator" / t
         generator_model_directory.mkdir(parents=True, exist_ok=True)
         torch.save(

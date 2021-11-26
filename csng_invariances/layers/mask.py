@@ -1,14 +1,12 @@
 # %%
-from os import makedirs
+
 import torch
 import torch.nn as nn
 from rich.progress import track
 from typing import Tuple
 import numpy as np
 from pathlib import Path
-from datetime import datetime
-
-from torch.nn.modules.container import T
+from csng_invariances._utils.utlis import string_time
 
 
 class Mask(nn.Module):
@@ -103,7 +101,7 @@ def compute_mask(
                 )
                 del activation_differences
         mask = pixel_standard_deviations.ge(threshold)
-    t = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    t = string_time()
     mask_directory = Path.cwd() / "models" / "masks" / t
     mask_directory.mkdir(parents=True, exist_ok=True)
     roi_directory = Path.cwd() / "models" / "roi" / t

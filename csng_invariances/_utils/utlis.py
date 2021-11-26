@@ -1,4 +1,5 @@
 import torch
+from datetime import datetime
 
 
 def print_cuda():
@@ -10,3 +11,12 @@ def print_cuda():
         f"Allocated memory: {allo:,}\n"
         f"Free memory: {(res-allo):,}"
     )
+
+
+def string_time():
+    """Returns formated sting of current time.
+
+    Returns:
+        str: Current date and time in %Y-%m-%d_%H:%M:%S format.
+    """
+    return datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
