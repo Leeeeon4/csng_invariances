@@ -1,10 +1,4 @@
-"""Module providing Most Exciting Image (MEI) funcitonality.
-
-Concept: 
-1. preprocess images if necessary.
-_, c, w, h = images.shape
-2. src_image = torch.zeros(1, c, w, h, requires_grad=True, device=device)
-"""
+"""Module providing Most Exciting Image (MEI) training."""
 
 from pathlib import Path
 import torch

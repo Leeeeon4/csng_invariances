@@ -1,4 +1,4 @@
-"""Generator training module."""
+"""Module providing training loops for the generator model."""
 
 import torch
 import torch.optim as optim

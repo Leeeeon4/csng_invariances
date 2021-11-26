@@ -1,4 +1,4 @@
-"""Encoding models module.
+"""Module providing training loops for the encoding models.
 
 This module was provided by Lurz et al. ICLR 2021: GENERALIZATION IN DATA-DRIVEN
 MODELS OF PRIMARY VISUAL CORTEX. The modul was altered to incorporate weights 

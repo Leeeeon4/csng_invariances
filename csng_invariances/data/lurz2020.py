@@ -33,6 +33,13 @@ from csng_invariances.data._data_helpers import (
     get_oracle_dataloader,
     make_directories,
 )
+from warnings import warn
+
+warn(
+    f"The module {__name__} is deprecated. Please use csng_invariances.data.datasets instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def download_lurz2020_data():
