@@ -709,5 +709,8 @@ class HyperparameterSearchAnalyzer:
             plt.close()
 
 
+# TODO Load Linear Filter
+
+
 if __name__ == "__main__":
     pass

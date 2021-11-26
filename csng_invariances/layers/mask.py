@@ -120,3 +120,6 @@ class NaiveMask(nn.Module):
                 f"{roi_directory}\n. The threshold used was {threshold}."
             )
         return mask, pixel_standard_deviations
+
+    # TODO @staticmethod load binary NaiveMask
+    # TODO @staticmethod load pixel_standard_deviations

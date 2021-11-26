@@ -23,6 +23,9 @@ def score(
     ) * dnn_single_neuron_correlations
 
 
+# TODO load score
+
+
 def select_neurons(score: torch.Tensor, num_neurons: int = 50) -> list:
     """Select num_neurons higest scoring neurons.
 
@@ -35,3 +38,9 @@ def select_neurons(score: torch.Tensor, num_neurons: int = 50) -> list:
     """
     _, indicies = torch.sort(score, descending=True, stable=True)
     return indicies[0:num_neurons].tolist()
+
+
+# TODO loadd selected neurons
+
+if __name__ == "__main__":
+    pass

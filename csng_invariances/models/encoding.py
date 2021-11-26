@@ -33,6 +33,7 @@ def download_pretrained_lurz_model():
     Returns
         pathlib.Path: Path to model
     """
+    # TODO deprecate, use data.datasets instead.
     print("Downloading pretrained Lurz model.")
     url = "https://github.com/sinzlab/Lurz_2020_code/raw/main/notebooks/models/transfer_model.pth.tar"
     answer = requests.get(url, allow_redirects=True)
@@ -57,7 +58,7 @@ def get_core_trained_model(dataloaders):
     Returns:
         torch.nn.Module: pretrained model
     """
-
+    # TODO deprecate as model_config is not passed.
     model_config = {
         "init_mu_range": 0.55,
         "init_sigma": 0.4,
@@ -866,84 +867,8 @@ def taskdriven_fullSXF(
     return model
 
 
-class ExampleDiscriminator(nn.Module):
-    """Create discriminator model class.
+# TODO load pretrained core_readout model
 
-    Create discriminator model for usage in the experiments.
-    A list of layers is used to build the model made up by linear layers.
-    Each layer is followed by leaky ReLU acitvation.
-    This class is based on Lazarou 2020: PyTorch and GANs: A Micro Tutorial.
-    tutorial, which can be found at:
-    https://towardsdatascience.com/\
-        pytorch-and-gans-a-micro-tutorial-804855817a6b
-    Most in-line comments are direct quotes from the tutorial. The code is
-    copied and slightly adapted.
-    """
-
-    def __init__(self, input_dim, layers):
-        """Instantiates discriminator.
-
-        Output activation is sigmoid.
-
-        Args:
-            input_dim (int): width of the input.
-            layers (List[int]): A list of layer widths including output width.
-        """
-        super().__init__()
-        self.input_dim = input_dim
-        self._init_layers(layers)
-
-    def _init_layers(self, layers):
-        """Initialize the layers and store as self.module_list.
-
-        Args:
-            layers (List[int]): A list of layer widths including output width.
-        """
-        self.module_list = nn.ModuleList()
-        last_layer = self.input_dim
-        for index, width in enumerate(layers):
-            self.module_list.append(nn.Linear(last_layer, width))
-            last_layer = width
-            if index + 1 != len(layers):
-                self.module_list.append(nn.LeakyReLU())
-        else:
-            self.module_list.append(nn.Sigmoid())
-
-    def forward(self, input_tensor):
-        """Forward pass.
-
-        Map samples to confidence they are real [0, 1].
-
-        Args:
-            input_tensor(torch.Tensor): tensor which is input
-                into the discriminator model.
-
-        Returns:
-            torch.Tensor: Output tensor of discriminator model.
-        """
-        intermediate = input_tensor
-        for layer in self.module_list:
-            intermediate = layer(intermediate)
-        return intermediate
-
-
-# class Core(self):
-# """Docustring class documentation"""
-# def __init__(self):
-# """Docstring init-method documentation"
-# pass
-# def forward(self):
-# """Docstring forward-method documentation"""
-# pass
-
-# class Readout(self):
-# """Docustring class documentation"""
-# def __init__(self):
-# """Docstring init-method documentation"
-# pass
-# def forward(self):
-# """Docstring forward-method documentation"""
-# pass
 
 if __name__ == "__main__":
     pass

@@ -1,5 +1,5 @@
 """Create GAN."""
-
+# TODO Deprecate as no usage of convetional gan.
 import torch
 import torch.optim as optim
 

@@ -140,4 +140,6 @@ class GrowingLinearGenerator(Generator):
         return super().sample_from_unit(low, high)
 
 
+# TODO Load pretrained generator model
+
 # %%

@@ -21,7 +21,16 @@ from csng_invariances.data._data_helpers import save_configs, load_configs
 from csng_invariances.training._measures import get_correlations, get_fraction_oracles
 from csng_invariances.data.preprocessing import *
 
+from pandas import read_csv
+from numpy import load
 
+import csng_invariances.data.antolik2016 as al
+import csng_invariances.data.lurz2020 as lu
+from csng_invariances.data.preprocessing import *
+
+import csng_invariances.models.linear_filter as lin_fil
+
+################################DNN ENCODING###############################
 def encoding_parser():
     """Handle argparsing of encoding sweeps.
 
@@ -448,8 +457,7 @@ def encode(parsed_kwargs):
 
     if vars(parsed_kwargs)["dataset"] == "Lurz":
         model, dataloaders, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
-        # evaluate_lurz_readout_encoding(model, dataloaders, configs)
-        model.train(False)
+        evaluate_lurz_readout_encoding(model, dataloaders, configs)
         model.eval()
 
     return model
@@ -461,6 +469,7 @@ def load_parser():
     Returns:
         str: Model directory.
     """
+    # TODO Move to models.encoding
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--encoding_model_directory",
@@ -487,6 +496,7 @@ def load_encoding_model(model_directory):
     Returns:
         model: Trained encoding model in evaluation state.
     """
+    # TODO Move to models.encoding
     configs = load_configs(model_directory)
     print(f"Model was trained on {configs['trainer_config']['device']}.\n")
     configs = adapt_config_to_machine(configs)
@@ -521,7 +531,7 @@ def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwa
         tensor: single neuron correlations tensor of dimension (neuron_count,
             image_count)
     """
-
+    # TODO Move to metrics_statistics.correlations
     neuron_count = responses.shape[1]
     image_count = responses.shape[0]
     num_batches, num_images_last_batch = divmod(image_count, batch_size)
@@ -569,23 +579,6 @@ def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwa
 
 
 ################################LINEAR FILTER###############################
-import argparse
-
-from pathlib import Path
-from rich import print
-from pandas import read_csv
-from numpy import load
-
-import csng_invariances.data.antolik2016 as al
-import csng_invariances.data.lurz2020 as lu
-from csng_invariances.data.preprocessing import *
-
-import csng_invariances.models.linear_filter as lin_fil
-
-# TODO all imports top 
-# TODO change lin_fil to * import
-
-
 def get_lurz_dataset():
     """Get Lurz data.
 
@@ -756,6 +749,7 @@ def linear_receptive_field_argparse(parser):
 
 
 def load_linear_filter_single_neuron_correlations(path: str) -> torch.Tensor:
+    # TODO Move to metrics_statistics.correlations
     device = "cuda" if torch.cuda.is_available() else "cpu"
     try:
         if Path(path).suffix == ".csv":
@@ -775,10 +769,11 @@ def load_linear_filter_single_neuron_correlations(path: str) -> torch.Tensor:
         )
 
 
-if __name__ == "__main__":
+################################EXPERIMENT###############################
+# TODO write experiment function
+def experiment_encoding():
     pass
 
 
 if __name__ == "__main__":
-    kwargs = encoding_parser()
-    encode(kwargs)
+    experiment_encoding()
