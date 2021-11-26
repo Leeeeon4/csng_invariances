@@ -14,6 +14,7 @@ TODO sort the whole dataset handling mess i made
 TODO reorganization of modules according to concepts
 TODO rename all private modules
 TODO Testing
+TODO change all np.save to torch.save for tensors and check type for all loading 
 
 # Would be nice
 TODO figure out if import csng_invariances. ... or ...
