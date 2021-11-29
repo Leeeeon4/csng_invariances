@@ -1,18 +1,18 @@
-"""Module providing functions related to the generation of exciting images."""
+"""Module providing functions related to the generation of most exciting images."""
 
 
 def mei_generation():
     from csng_invariances.encoding import load_encoding_model
     from csng_invariances.encoding import get_single_neuron_correlation as dnn_corrs
     from csng_invariances.training.mei import mei
-    from csng_invariances.losses.loss_modules import SelectedNeuronActivation
+    from csng_invariances.layers.loss_function import SelectedNeuronActivation
     from csng_invariances.data.datasets import (
         gaussian_white_noise_image,
         Lurz2021Dataset,
     )
-    from csng_invariances.select_neurons import select_neurons, score
+    from csng_invariances.metrics_statistics.select_neurons import select_neurons, score
     from csng_invariances.data._data_helpers import load_configs
-    from csng_invariances.linear_receptive_field import (
+    from csng_invariances.encoding import (
         load_linear_filter_single_neuron_correlations,
     )
 
@@ -41,10 +41,6 @@ def mei_generation():
     )
     select_neuron_indicies = select_neurons(selection_score, 5)
     meis = mei(criterion, encoding_model, gwni, select_neuron_indicies)
-
-
-def generator_generation():
-    pass
 
 
 if __name__ == "__main__":
