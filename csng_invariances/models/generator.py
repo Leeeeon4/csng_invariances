@@ -1,43 +1,38 @@
 """Module for generator model classes."""
-#%%
-from typing import OrderedDict
+
 import torch
-from torch import nn
-import math
+from typing import OrderedDict, Tuple
+from math import log
 
 
-class Generator(nn.Module):
+class Generator(torch.nn.Module):
     """Highlevel GeneratorModel class."""
 
     def __init__(
         self,
-        images,
-        responses,
-        latent_space_dimension,
-        batch_size,
+        output_shape: torch.Size = (64, 1, 36, 64),
+        latent_space_dimension: int = 128,
+        batch_size: int = None,
         device=None,
         *args,
         **kwargs,
     ):
-        """Instantiation.
-
+        """
         Args:
-            images (Tensor): image tensor.
-            responses (Tensor): response tensor.
+            output_shape ()
             latent_space_dimension (int): Size of the latent vector
             batch_size (int): batch_size
             device (str, optional): Device to compute on. Defaults to None.
         """
         super().__init__()
-
-        self.images = images
-        self.responses = responses
+        self.output_shape = output_shape
+        if batch_size is not None:
+            self.output_shape[0] = self.batch_size
+        self.batch_size, self.channels, self.height, self.width = self.output_shape
         self.latent_space_dimension = latent_space_dimension
         self.batch_size = batch_size
-        self.image_count, self.channels, self.height, self.width = self.images.shape
-        _, self.neuron_count = self.responses.shape
         if device is None:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
 
@@ -55,38 +50,22 @@ class Generator(nn.Module):
             x = x.reshape(x.shape[0], self.channels, self.height, self.width)
         return x
 
-    def _empty_sample_tensor(self):
-        return torch.empty(
-            size=(self.batch_size, self.latent_space_dimension),
-            device=self.device,
-            dtype=torch.float,
-            requires_grad=True,
-        )
-
-    def sample_from_normal(self, mean=0, std=1):
-        return nn.init.normal_(self._empty_sample_tensor(), mean, std)
-
-    def sample_from_unit(self, low, high):
-        return nn.init.uniform_(self._empty_sample_tensor(), low, high)
-
 
 class GrowingLinearGenerator(Generator):
     def __init__(
         self,
-        images,
-        responses,
-        latent_space_dimension,
-        batch_size,
-        layer_growth,
-        device=None,
+        output_shape: Tuple[int, int, int, int] = (64, 1, 36, 64),
+        latent_space_dimension: int = 128,
+        batch_size: int = None,
+        device: str = None,
+        layer_growth: float = 1.1,
         *args,
         **kwargs,
     ):
         super().__init__(
-            images,
-            responses,
-            latent_space_dimension,
-            batch_size,
+            output_shape=output_shape,
+            latent_space_dimension=latent_space_dimension,
+            batch_size=batch_size,
             device=device,
             *args,
             **kwargs,
@@ -94,7 +73,7 @@ class GrowingLinearGenerator(Generator):
         self.layer_growth = layer_growth
 
         quotient, remainder = divmod(
-            math.log(
+            log(
                 (
                     (self.channels * self.height * self.width)
                     / self.latent_space_dimension
@@ -105,7 +84,7 @@ class GrowingLinearGenerator(Generator):
         )
         self.layers = OrderedDict()
         for layer in range(int(quotient)):
-            l = nn.Linear(
+            l = torch.nn.Linear(
                 in_features=int(
                     self.latent_space_dimension * self.layer_growth ** layer
                 ),
@@ -115,9 +94,9 @@ class GrowingLinearGenerator(Generator):
                 device=device,
             )
             self.layers[f"Linear Layer {layer}"] = l
-            self.layers[f"ReLU {layer}"] = nn.ReLU()
+            self.layers[f"ReLU {layer}"] = torch.nn.ReLU()
         if remainder != 0:
-            l = nn.Linear(
+            l = torch.nn.Linear(
                 in_features=int(
                     self.latent_space_dimension * self.layer_growth ** (quotient)
                 ),
@@ -125,21 +104,10 @@ class GrowingLinearGenerator(Generator):
                 device=device,
             )
             self.layers["Last Linear Layer"] = l
-            self.layers["Last ReLU"] = nn.ReLU()
+            self.layers["Last ReLU"] = torch.nn.ReLU()
 
-        self.linear_stack = nn.Sequential(self.layers)
+        self.linear_stack = torch.nn.Sequential(self.layers)
 
     def forward(self, x):
         x = self.linear_stack(x)
         return super().forward(x)
-
-    def sample_from_normal(self, mean=0, std=1):
-        return super().sample_from_normal(mean, std)
-
-    def sample_from_unit(self, low, high):
-        return super().sample_from_unit(low, high)
-
-
-# TODO Load pretrained generator model
-
-# %%
