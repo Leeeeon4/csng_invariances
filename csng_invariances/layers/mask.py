@@ -1,4 +1,4 @@
-"""Submodule providing different masking layers."""
+# %%
 
 import torch
 from rich.progress import track
@@ -25,8 +25,7 @@ class NaiveMask(torch.nn.Module):
         else:
             self.device = device
         self.mask = mask[neuron, :, :].reshape(1, 1, mask.shape[1], mask.shape[2]).int()
-        self.mask = self.mask.to(self.device)
-        print(self.mask.sum())
+        self.mask.to(self.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -46,7 +45,8 @@ class NaiveMask(torch.nn.Module):
         encoding_model: torch.nn.Module,
         device: str = None,
         num_different_pixels: int = 20,
-        threshold: float = 0.02,
+        computation_type: str = "max_std",
+        threshold: float = 0.9,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute a binary mask of pixels not influencing neural activation.
 
@@ -66,6 +66,10 @@ class NaiveMask(torch.nn.Module):
         the one_image. This approach is naive in a way that it assumes that pixels influence
         activation independently.
         (compare Kovacs 2021)
+        The threshold can either be computed as:\n
+        - a fixed value (bad expericence, can lead to 0 mask)
+        - a percentage of the max std per neuron (above 90% (of keeping) suggested)
+        - a percentage of the area (suggested)
 
         Args:
             one_image (torch.Tensor): one one_image tensor. Not the whole dataset.
@@ -74,22 +78,97 @@ class NaiveMask(torch.nn.Module):
             device (str, optional): device. Defaults to none.
             num_different_pixels (int, optional): number of different pixel values
                 to use for computation of standard deviation. Defaults to 20.
-            threshold (float, optional): Binary threshold value for masking.
-                Defaults to 0.02.
+            computation_type (str, optional): which way to compute mask. options are
+                'max_std', 'area', 'fix'. Defaults to fix.
+            threshold (float, optional): Binary threshold value for masking, percentage of max standard deviation.
+                Defaults to 0.9.
 
         Returns:
             Tuple: Tuple of binary mask tensor and and pixel standard deviation (roi)
                 tensor. Both of shape (num_neurons, height, width).
         """
+
+        @staticmethod
+        def maximum_relative_threshold_mask(
+            threshold: float, pixel_standard_deviations: torch.Tensor
+        ) -> torch.Tensor:
+            """Compute binary mask based on percentage of neuron specific max. pixel standard deviation.
+
+            Args:
+                threshold (float): percentage threshold
+                pixel_standard_deviations (torch.Tensor): pixel_standardd_deviations
+
+            Returns:
+                torch.Tensor: binary mask
+            """
+            mask = torch.empty_like(pixel_standard_deviations)
+            for neuron in track(
+                range(pixel_standard_deviations.shape[0]),
+                description=f"Computing thresholds ({threshold*100}% of max. std. per neuron) and binary masks: ",
+            ):
+                neuron_threshold = pixel_standard_deviations[neuron, :, :].max() * (
+                    1 - threshold
+                )
+                mask[neuron, :, :] = pixel_standard_deviations[neuron, :, :].ge(
+                    neuron_threshold
+                )
+            return mask
+
+        @staticmethod
+        def area_relative_threshold_mask(
+            threshold: float, pixel_standard_deviations: torch.Tensor
+        ) -> torch.Tensor:
+            """Compute binary mask based on the percentage of image area to allow.
+
+            Args:
+                threshold (float): image area percentage
+                pixel_standard_deviations (torch.Tensor): pixel standardd deviation
+
+            Returns:
+                torch.Tensor: binary mask
+            """
+            mask = torch.empty_like(pixel_standard_deviations)
+            for neuron in track(
+                range(pixel_standard_deviations.shape[0]),
+                description=f"Computing thresholds ({threshold*100}% of area) and binary masks: ",
+            ):
+                neuron_threshold = torch.quantile(
+                    pixel_standard_deviations[neuron, :, :], (1 - threshold)
+                )
+                mask[neuron, :, :] = pixel_standard_deviations[neuron, :, :].ge(
+                    neuron_threshold
+                )
+            return mask
+
+        @staticmethod
+        def constant_threshold_mask(
+            threshold: float, pixel_standard_deviations: torch.Tensor
+        ) -> torch.Tensor:
+            """Compute binary mask on hard threshold.
+
+            Args:
+                threshold (float): Threshold to exceed.
+                pixel_standard_deviations (torch.Tensor): Pixel standard deviations.
+
+            Returns:
+                torch.Tensor: binary mask
+            """
+            mask = pixel_standard_deviations.ge(threshold)
+            return mask
+
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         pixel_standard_deviations = torch.empty(
             size=(one_response.shape[0], one_image.shape[2], one_image.shape[3]),
             device=device,
         )
+        mask = torch.empty_like(pixel_standard_deviations)
         with torch.no_grad():
             activation = encoding_model(one_image)
-            for i in track(range(one_image.shape[2])):
+            for i in track(
+                range(one_image.shape[2]),
+                description="Computing the standard deviation of the pixels effect on the activations: ",
+            ):
                 for j in range(one_image.shape[3]):
                     activation_differences = torch.empty(
                         size=(one_response.shape[0], num_different_pixels)
@@ -108,7 +187,16 @@ class NaiveMask(torch.nn.Module):
                         activation_differences, dim=1
                     )
                     del activation_differences
-            mask = pixel_standard_deviations.ge(threshold)
+            if computation_type == "max_std":
+                mask = maximum_relative_threshold_mask(
+                    threshold, pixel_standard_deviations
+                )
+            elif computation_type == "area":
+                mask = area_relative_threshold_mask(
+                    threshold, pixel_standard_deviations
+                )
+            else:
+                mask = constant_threshold_mask(threshold, pixel_standard_deviations)
         t = string_time()
         mask_directory = Path.cwd() / "models" / "masks" / t
         mask_directory.mkdir(parents=True, exist_ok=True)
@@ -150,3 +238,6 @@ class NaiveMask(torch.nn.Module):
         except Exception as err:
             print("An error occured. Is path correct? Is numpy file?\n\n" f"{err}")
         return data_tensor
+
+
+# %%
