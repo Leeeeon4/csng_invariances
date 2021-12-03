@@ -74,6 +74,7 @@ def mei(
     Returns:
         dict: Dictionary of neuron_idx and the associated MEI.
     """
+    show_last = True
     meis = {}
     t = string_time()
     meis_directoy = Path.cwd() / "data" / "processed" / "MEIs" / t
@@ -93,7 +94,7 @@ def mei(
         for epoch in track(
             range(epochs),
             total=epochs,
-            description=f"Neuron {counter}/{len(selected_neuron_indicies)}: ",
+            description=f"Neuron {counter+1}/{len(selected_neuron_indicies)}: ",
         ):
             new_image = naive_gradient_ascent_step(image=new_image, **trainer_config)
             if show and epoch % 10 == 0:
@@ -105,7 +106,9 @@ def mei(
                 plt.show(block=False)
                 plt.pause(0.1)
                 plt.close()
-        save(meis_directoy / f"MEI_neuron_{neuron}.npy", new_image.detach().numpy())
+        save(
+            meis_directoy / f"MEI_neuron_{neuron}.npy", new_image.detach().cpu().numpy()
+        )
         if (meis_directoy / "readme.md").exists() is False:
             with open(meis_directoy / "readme.md", "w") as f:
                 f.write(
@@ -117,11 +120,22 @@ def mei(
         meis[neuron] = new_image
         if show:
             fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
-            im = ax.imshow(new_image.detach().numpy().squeeze())
+            im = ax.imshow(new_image.detach().cpu().numpy().squeeze())
             ax.set_title(f"Final image neuron {neuron}")
             plt.colorbar(im)
             plt.tight_layout()
             plt.show(block=False)
             plt.pause(3)
             plt.close("all")
+        if show_last:
+            img = new_image.detach().cpu().numpy().squeeze()
+            activations = encoding_model(new_image)
+            plt.imshow(img, cmap="gray")
+            plt.colorbar()
+            plt.title(f"Activation: {activations[:,neuron].item()}")
+            image_title = f"mei_neuron_{neuron}.png"
+            image_directory = Path.cwd() / "reports" / "figures" / "mei" / t
+            image_directory.mkdir(parents=True, exist_ok=True)
+            plt.savefig(image_directory / image_title, facecolor="white")
+            plt.close()
     return meis

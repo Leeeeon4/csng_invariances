@@ -3,7 +3,7 @@
 from csng_invariances.data._data_helpers import *
 
 
-def image_preprocessing(images):
+def image_preprocessing(images: torch.Tensor) -> torch.Tensor:
     """Preprocesses images
 
     Args:
@@ -17,7 +17,7 @@ def image_preprocessing(images):
     return images
 
 
-def response_preprocessing(responses):
+def response_preprocessing(responses: torch.Tensor) -> torch.Tensor:
     """Preprocesses responses
 
     Args:

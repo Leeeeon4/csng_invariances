@@ -114,18 +114,19 @@ class Filter:
         Returns:
             tuple: tuple of predictions and correlation
         """
+        # TODO Handle Cuda
         fil = self._handle_predict_parsing(fil)
         self._image_2d()
-        self.prediction = np.asarray(np.matmul(self.images, fil))
-        self.corr = np.corrcoef(self.prediction.flatten(), self.responses.flatten())[
-            0, 1
-        ]
+        self.prediction = np.asarray(np.matmul(self.images.cpu(), fil))
+        self.corr = np.corrcoef(
+            self.prediction.flatten(), self.responses.cpu().flatten()
+        )[0, 1]
         if single_neuron_correlation:
             self.single_neuron_correlations = np.empty(self.neuron_count)
             for neuron in range(self.neuron_count):
                 pred = self.prediction[:, neuron]
                 resp = self.responses[:, neuron]
-                single_corr = np.corrcoef(pred, resp)[0, 1]
+                single_corr = np.corrcoef(pred, resp.cpu())[0, 1]
                 self.single_neuron_correlations[neuron] = single_corr
         return self.prediction, self.corr
 
@@ -146,6 +147,7 @@ class Filter:
         Returns:
             dict: Dictionary of Neurons and Correlations
         """
+        # TODO handle cuda
         if report_dir is None:
             self.report_dir = Path.cwd() / "reports" / "linear_filter" / self.time
             self.report_dir.mkdir(parents=True, exist_ok=True)
@@ -155,12 +157,13 @@ class Filter:
         fil = _reshape_filter_2d(fil)
         # Make report
         self.neural_correlations = {}
+        self.single_neural_correlation_linear_filter = np.empty(self.neuron_count)
         print("Begin reporting procedure.")
         if store_images:
             print(f"Stored images at {self.figure_dir}.")
         for neuron in track(range(computed_prediction.shape[1])):
             corr = np.corrcoef(
-                computed_prediction[:, neuron], self.responses[:, neuron]
+                computed_prediction[:, neuron], self.responses[:, neuron].cpu()
             )[0, 1]
             if store_images:
                 self.figure_dir = (
@@ -177,6 +180,7 @@ class Filter:
                 )
                 plt.close()
             self.neural_correlations[neuron] = corr
+            self.single_neural_correlation_linear_filter[neuron] = corr
         self.fil = fil
         self._fil_4d()
         if reports:
@@ -197,7 +201,7 @@ class Filter:
                     )
                 )
         print("Reporting procedure concluded.")
-        return self.report_dir / ""
+        return self.single_neural_correlation_linear_filter
 
     def _shape_printer(self):
         """Print shape related information for debugging."""
@@ -280,13 +284,14 @@ class Filter:
         Returns:
             np.array: 2D representation of linear filters. Filters are flattened.
         """
+        # TODO Handle Cuda
         self._image_2d()
         fil = np.matmul(
             pinv(
-                np.matmul(self.images.T, self.images)
+                np.matmul(self.images.cpu().T, self.images.cpu())
                 + reg_factor * np.identity(self.dim1 * self.dim2)
             ),
-            np.matmul(self.images.T, responses),
+            np.matmul(self.images.cpu().T, responses.cpu()),
         )
         return fil
 
@@ -465,7 +470,7 @@ class Hyperparametersearch:
         self.neurons = np.array(list(range(self.neuron_count))).reshape(
             self.neuron_count, 1
         )
-        self.time = string_time
+        self.time = string_time()
 
     def _one_hyperparameter(self, reg_factor):
         """Compute linear filter for one regularization factor
@@ -488,17 +493,25 @@ class Hyperparametersearch:
         self.corrs = np.empty((self.neuron_count, len(self.reg_factors)))
         self.c = np.empty(len(self.reg_factors))
         print("Beginning hyperparametersearch.")
-        with ProcessPoolExecutor() as executor:
-            single_neuron_correlations = list(
-                track(
-                    executor.map(self._one_hyperparameter, self.reg_factors),
-                    total=len(self.reg_factors),
-                )
-            )
-            for neuron in range(self.neuron_count):
-                self.params[neuron, :] = self.reg_factors
-            for counter, value in enumerate(single_neuron_correlations):
-                self.corrs[:, counter] = value
+        for counter, reg_factor in track(
+            enumerate(self.reg_factors), total=len(self.reg_factors)
+        ):
+            single_neuron_correlations = self._one_hyperparameter(reg_factor)
+            self.corrs[:, counter] = single_neuron_correlations
+        for neuron in range(self.neuron_count):
+            self.params[neuron, :] = self.reg_factors
+        # TODO Fix
+        # with ProcessPoolExecutor() as executor:
+        #     single_neuron_correlations = list(
+        #         track(
+        #             executor.map(self._one_hyperparameter, self.reg_factors),
+        #             total=len(self.reg_factors),
+        #         )
+        #     )
+        #     for neuron in range(self.neuron_count):
+        #         self.params[neuron, :] = self.reg_factors
+        #     for counter, value in enumerate(single_neuron_correlations):
+        #         self.corrs[:, counter] = value
         print("Concluded hyperparametersearch.")
         self.df_params = pd.DataFrame(self.params, columns=self.reg_factors)
         self.df_corrs = pd.DataFrame(self.corrs, columns=self.reg_factors)
@@ -709,7 +722,16 @@ class HyperparameterSearchAnalyzer:
             plt.close()
 
 
-# TODO Load Linear Filter
+def load_linear_filter(path: str, device: str = None) -> torch.Tensor:
+    try:
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        data = np.load(path)
+        data_tensor = torch.from_numpy(data)
+        data_tensor.to(device)
+    except Exception:
+        print("An error occured. Is the file a numpy file? Is path correct?")
+    return data_tensor
 
 
 if __name__ == "__main__":

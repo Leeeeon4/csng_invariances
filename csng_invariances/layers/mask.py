@@ -2,6 +2,7 @@
 
 import torch
 from rich.progress import track
+from rich import print
 from typing import Tuple
 from numpy import linspace, load, save
 from pathlib import Path
@@ -222,10 +223,10 @@ class NaiveMask(torch.nn.Module):
         try:
             data = load(path)
             data_tensor = torch.from_numpy(data)
-            data_tensor.to(device)
+            tensor = data_tensor.to(device)
         except Exception as err:
             print("An error occured. Is path correct? Is numpy file?\n\n" f"{err}")
-        return data_tensor
+        return tensor
 
     @staticmethod
     def load_pixel_standard_deviations(path: str, device: str = None) -> torch.Tensor:
@@ -234,10 +235,10 @@ class NaiveMask(torch.nn.Module):
         try:
             data = load(path)
             data_tensor = torch.from_numpy(data)
-            data_tensor.to(device)
+            tensor = data_tensor.to(device)
         except Exception as err:
             print("An error occured. Is path correct? Is numpy file?\n\n" f"{err}")
-        return data_tensor
+        return tensor
 
 
 # %%

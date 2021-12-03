@@ -20,4 +20,5 @@ class SelectedNeuronActivation(nn.Module):
         Returns:
             torch.Tensor: output
         """
+        # print(inputs[:, neuron_idx])
         return -inputs[:, neuron_idx].sum()

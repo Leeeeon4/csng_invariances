@@ -20,7 +20,13 @@ from csng_invariances._neuralpredictors.layers.cores import (
     SE2dCore,
 )
 
-from csng_invariances.data._data_helpers import unpack_data_info
+from csng_invariances.data._data_helpers import (
+    unpack_data_info,
+    load_configs,
+    adapt_config_to_machine,
+)
+
+from csng_invariances.data.datasets import Lurz2021Dataset
 
 
 def download_pretrained_lurz_model():
@@ -102,7 +108,7 @@ class Encoder(nn.Module):
         self.readout = readout
         self.offset = elu_offset
 
-    def forward(self, x, data_key=None, detach_core=False, **kwargs):
+    def forward(self, x, data_key=None, detach_core=False, **kwargs) -> torch.Tensor:
         x = self.core(x)
         if detach_core:
             x = x.detach()
@@ -867,7 +873,39 @@ def taskdriven_fullSXF(
     return model
 
 
-# TODO load pretrained core_readout model
+def load_encoding_model(model_directory):
+    """Load pretrained encoding model.
+
+    Loads an encoding model which was pretrained for a specific dataset. The
+    model is return in eval model. I.e. dropout and other things are deactivated
+    which cause inference.
+
+    Args:
+        model_directory (str): path to model directory to load from.
+
+    Returns:
+        model: Trained encoding model in evaluation state.
+    """
+    configs = load_configs(model_directory)
+    print(f"Model was trained on {configs['trainer_config']['device']}.\n")
+    configs = adapt_config_to_machine(configs)
+    dataloaders = Lurz2021Dataset.static_loaders(**configs["dataset_config"])
+    model = se2d_fullgaussian2d(
+        **configs["model_config"],
+        dataloaders=dataloaders,
+        seed=configs["dataset_config"]["seed"],
+    )
+    model.load_state_dict(
+        torch.load(
+            Path(model_directory) / "Pretrained_core_readout_lurz.pth",
+            map_location=configs["trainer_config"]["device"],
+        )
+    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    print(f"Model runs in evaluation mode on {device}.")
+    model.eval()
+    return model
 
 
 if __name__ == "__main__":

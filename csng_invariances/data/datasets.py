@@ -68,7 +68,7 @@ class NeuralDataset(Dataset):
 
     def _parse_device(self, device: str) -> str:
         if device is None:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
         return self.device
@@ -231,16 +231,34 @@ class Lurz2021Dataset(NeuralDataset):
     def get_dataloaders(self):
         return self.dataloaders
 
-    def get_dataset(self, concat: bool = False):
+    def get_dataset(
+        self, dataset_type: str = None, concat: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Load dataset to memory.
+
+        Args:
+            dataset_type (str, optional): Dataset type, options are 'train',
+                'validation', 'test'. If None, 'train' is used. Defaults to None.
+            concat (bool, optional): If True, all dataset_types are concatenated.
+                Defaults to False.
+
+        Returns:
+            Tuple: Tuple of image and response Tensor.
+        """
         if concat:
             images, responses = [], []
             for typ in ["train", "validation", "test"]:
                 for x, y in self.get_dataloaders()[typ][self.dataset_name]:
                     images.append(x.squeeze().cpu().data.numpy())
                     responses.append(y.squeeze().cpu().data.numpy())
-        else:
+        elif dataset_type is None:
             images, responses = [], []
             for x, y in self.get_dataloaders()[self.dataset_type][self.dataset_name]:
+                images.append(x.squeeze().cpu().data.numpy())
+                responses.append(y.squeeze().cpu().data.numpy())
+        else:
+            images, responses = [], []
+            for x, y in self.get_dataloaders()[dataset_type][self.dataset_name]:
                 images.append(x.squeeze().cpu().data.numpy())
                 responses.append(y.squeeze().cpu().data.numpy())
 
@@ -746,16 +764,26 @@ def gaussian_white_noise_image(size: Tuple[int], device: str = None) -> torch.Te
 class LatentVector:
     def __init__(
         self,
-        num_vectors: int = 1_000_000,
+        batch_size: int = 64,
         latent_space_dimension: int = 128,
         device: str = None,
     ) -> None:
+        """Empty Latent Vector available as self.vector.
+        Args:
+            batch_size (int, optional): Batch size. Defaults to 64.
+            latent_space_dimension (int, optional): Latent space dimension. Defaults to 128.
+            device (str, optional): torch device, if None tries cuda. Defaults to None.
+        """
+        self.batch_size = batch_size
+        self.latent_space_dimension = latent_space_dimension
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
         self.vector = torch.empty(
-            size=(num_vectors, latent_space_dimension),
-            device=device,
+            size=(self.batch_size, self.latent_space_dimension),
             dtype=torch.float,
+            device=self.device,
             requires_grad=True,
         )
 
@@ -785,7 +813,7 @@ def normal_latent_vector(
 
 
 def uniform_latent_vector(
-    num_vectors: int = 1_000_000,
+    batch_size: int = 64,
     latent_space_dimension: int = 128,
     device: str = None,
     low: float = -2,
@@ -794,7 +822,7 @@ def uniform_latent_vector(
     """Returns a latent tensor with gradient drawn form uniform distribution.
 
     Args:
-        num_vectors (int, optional): Number of Vectors. Defaults to 1_000_000.
+        batch_size (int, optional): batchsize. Defaults to 64.
         latent_space_dimension (int, optional): Dimensionality of Vectors. Defaults to 128.
         device (str, optional): Device, if none tries to default to cuda. Defaults to None.
         low (float, optional): low of uniform distribution to sample from. Defaults to 0.
@@ -804,5 +832,5 @@ def uniform_latent_vector(
         torch.Tensor: Tensor of size (num_vectors, latent_space_dimension) sampled
             from normal distribution with mean: mean and std: std.
     """
-    tensor = LatentVector(num_vectors, latent_space_dimension, device)
+    tensor = LatentVector(batch_size, latent_space_dimension, device)
     return torch.nn.init.uniform_(tensor.vector, low, high)

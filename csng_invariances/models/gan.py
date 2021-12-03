@@ -1,24 +1,58 @@
-"""Create GAN."""
-# TODO Deprecate as no usage of convetional gan.
+"""Submodule provinding GAN model architectures."""
+
 import torch
 import torch.optim as optim
-
 from torch import nn
+from typing import Callable
 
-from csng_invariances.data.preprocessing import image_preprocessing
 
-
-class ComputeModel(nn.Module):
-    def __init__(self, generator_model, encoding_model, *args, **kwargs):
+class GANModel(torch.nn.Module):
+    def __init__(
+        self,
+        generator_model: torch.nn.Module,
+        encoding_model: torch.nn.Module,
+        masking_layer: torch.nn.Module,
+        image_preprocessing: Callable = None,
+        response_preprocessing: Callable = None,
+        device: str = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__()
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
         self.generator_model = generator_model
         self.encoding_model = encoding_model.requires_grad_(False)
+        self.masking_layer = masking_layer
 
-    def forward(self, x):
-        x = self.generator_model(x)
-        x = image_preprocessing(x)
-        x = self.encoding_model(x)
-        return x
+        # set processing to nothing if None is passed
+        if image_preprocessing is None:
+
+            def image_preprocessing(self, x):
+                return x
+
+        else:
+            self.image_preprocessing = image_preprocessing
+        if response_preprocessing is None:
+
+            def response_preprocessing(self, x):
+                return x
+
+        else:
+            self.response_preprocessing = response_preprocessing
+
+    def forward(self, latent_vector: torch.Tensor) -> torch.Tensor:
+        sample = self.generator_model(latent_vector)  # latent vector -> sample
+        masked_sample = self.masking_layer(sample)  # sample -> masked sample
+        preprocessed_sample = self.image_preprocessing(
+            masked_sample
+        )  # masked sample -> preprocessed sample
+        activations = self.encoding_model(
+            preprocessed_sample
+        )  # preprocessed sample -> activations
+        return activations, preprocessed_sample, masked_sample, sample
 
 
 class ExampleGAN:

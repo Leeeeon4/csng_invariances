@@ -1,19 +1,21 @@
 """Module for generator model classes."""
 
 import torch
+from torchvision.transforms import GaussianBlur
 from typing import OrderedDict, Tuple
 from math import log
 
 
 class Generator(torch.nn.Module):
-    """Highlevel GeneratorModel class."""
+    """Highlevel Generator model class."""
 
     def __init__(
         self,
         output_shape: torch.Size = (64, 1, 36, 64),
         latent_space_dimension: int = 128,
         batch_size: int = None,
-        device=None,
+        device: str = None,
+        batch_norm: bool = False,
         *args,
         **kwargs,
     ):
@@ -35,6 +37,10 @@ class Generator(torch.nn.Module):
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
+        self.batch_norm = batch_norm
+        self.normalization_layer = torch.nn.BatchNorm2d(
+            num_features=self.output_shape, device=self.device, dtype=torch.float
+        )
 
     def forward(self, x):
         """Forward pass through the model
@@ -48,16 +54,24 @@ class Generator(torch.nn.Module):
         # reshape if necessary
         if x.shape != (x.shape[0], self.channels, self.height, self.width):
             x = x.reshape(x.shape[0], self.channels, self.height, self.width)
+        # performs batch_norm if wanted
+        if self.batch_norm:
+            x = self.normalization_layer(x)
         return x
 
 
 class GrowingLinearGenerator(Generator):
+    """Generator architecure of linear layers which grow by factor of layer_growth
+    between every layer step.
+    """
+
     def __init__(
         self,
         output_shape: Tuple[int, int, int, int] = (64, 1, 36, 64),
         latent_space_dimension: int = 128,
         batch_size: int = None,
         device: str = None,
+        batch_norm: bool = False,
         layer_growth: float = 1.1,
         *args,
         **kwargs,
@@ -67,6 +81,7 @@ class GrowingLinearGenerator(Generator):
             latent_space_dimension=latent_space_dimension,
             batch_size=batch_size,
             device=device,
+            batch_norm=batch_norm,
             *args,
             **kwargs,
         )
@@ -111,3 +126,106 @@ class GrowingLinearGenerator(Generator):
     def forward(self, x):
         x = self.linear_stack(x)
         return super().forward(x)
+
+
+class FullyConnectedGenerator(Generator):
+    """Generator Architecture as presented by Kovacs."""
+
+    def __init__(
+        self,
+        output_shape: torch.Size = (64, 1, 36, 64),
+        latent_space_dimension: int = 128,
+        batch_size: int = None,
+        device: str = None,
+        batch_norm: bool = False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            output_shape=output_shape,
+            latent_space_dimension=latent_space_dimension,
+            batch_size=batch_size,
+            device=device,
+            batch_norm=batch_norm,
+            *args,
+            **kwargs,
+        )
+        self.layer_0_out = 512
+        self.layer_1_out = 1024
+        self.layer_2_out = self.channels * self.height * self.width
+
+        self.layer_0 = torch.nn.Linear(
+            in_features=self.latent_space_dimension,
+            out_features=self.layer_0_out,
+            device=self.device,
+        )
+        self.activation_function_0 = torch.nn.Tanh()
+        self.layer_1 = torch.nn.Linear(
+            in_features=self.layer_0_out,
+            out_features=self.layer_1_out,
+            device=self.device,
+        )
+        self.activation_function_1 = torch.nn.Tanh()
+        self.layer_2 = torch.nn.Linear(
+            in_features=self.layer_1_out,
+            out_features=self.layer_2_out,
+            device=self.device,
+        )
+        self.activation_function_2 = torch.nn.Tanh()
+
+        self.linear_stack = torch.nn.Sequential(
+            self.layer_0,
+            self.activation_function_0,
+            self.layer_1,
+            self.activation_function_1,
+            self.layer_2,
+            self.activation_function_2,
+        )
+
+        self.linear_stack.to(self.device)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        First passes through linear_stack, than through forward pass for all
+        generator models (super).
+
+        Args:
+            x (torch.Tensor): input tensor
+
+        Returns:
+            torch.Tensor: output tensor
+        """
+        x = self.linear_stack(x)
+        return super().forward(x)
+
+
+class FullyConnectedGeneratorWithGaussianBlurring(FullyConnectedGenerator):
+    def __init__(
+        self,
+        output_shape: torch.Size = (64, 1, 36, 64),
+        latent_space_dimension: int = 128,
+        batch_size: int = None,
+        device: str = None,
+        batch_norm: bool = False,
+        kernel_size: Tuple[int, int] = (3, 3),
+        sigma: Tuple[float, float] = (0.1, 2),
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            output_shape=output_shape,
+            latent_space_dimension=latent_space_dimension,
+            batch_size=batch_size,
+            device=device,
+            batch_norm=batch_norm,
+            *args,
+            **kwargs,
+        )
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+        self.gaussian = GaussianBlur(kernel_size=self.kernel_size, sigma=self.sigma)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = super().forward(x)
+        return self.gaussian(x)

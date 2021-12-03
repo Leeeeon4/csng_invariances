@@ -1,36 +1,49 @@
 """Module provding encoding model (DNN ENC) and linear filter (LF) functionality."""
 
+from typing import Tuple
 import wandb
 import torch
 import argparse
 import json
-import numpy as np
 
 from rich import print
-from rich.progress import track
 from pathlib import Path
-from csng_invariances._utils.utlis import string_time
+from numpy import logspace
 
-from csng_invariances.data.lurz2020 import download_lurz2020_data, static_loaders
+
+from csng_invariances._utils.utlis import string_time
+from csng_invariances.data._data_helpers import save_configs, load_configs
+from csng_invariances.training._measures import get_correlations, get_fraction_oracles
+from csng_invariances.data.datasets import Lurz2021Dataset
+from csng_invariances.data.preprocessing import (
+    image_preprocessing,
+    response_preprocessing,
+)
+
 from csng_invariances.models.encoding import (
     download_pretrained_lurz_model,
+    load_encoding_model,
     se2d_fullgaussian2d,
 )
 from csng_invariances.training.encoding import standard_trainer as lurz_trainer
-from csng_invariances.data._data_helpers import save_configs, load_configs
-from csng_invariances.training._measures import get_correlations, get_fraction_oracles
-from csng_invariances.data.preprocessing import *
+from csng_invariances.models.linear_filter import (
+    Filter,
+    GlobalRegularizationFilter,
+    GlobalHyperparametersearch,
+    IndividualHyperparametersearch,
+    IndividualRegularizationFilter,
+)
+from csng_invariances.metrics_statistics.correlations import (
+    compute_single_neuron_correlations_encoding_model,
+    compute_single_neuron_correlations_linear_filter,
+)
+from csng_invariances.metrics_statistics.select_neurons import score, select_neurons
+from csng_invariances.layers.mask import NaiveMask
 
-from pandas import read_csv
-from numpy import load
 
-import csng_invariances.data.antolik2016 as al
-import csng_invariances.data.lurz2020 as lu
-from csng_invariances.data.preprocessing import *
-
-import csng_invariances.models.linear_filter as lin_fil
-
-################################DNN ENCODING###############################
+# TODO optional: All type annotations.
+################################PARSER###############################
+# TODO make one parser for function
 def encoding_parser():
     """Handle argparsing of encoding sweeps.
 
@@ -132,13 +145,61 @@ def encoding_parser():
     return kwargs
 
 
+def load_parser():
+    """Handle encoding model directory parsing.
+
+    Returns:
+        str: Model directory.
+    """
+    # TODO Move to models.encoding
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--encoding_model_directory",
+        type=str,
+        help=(
+            "Directory of the trained encoding model. Recall, the model must "
+            "fit to the dataset, as the readout is dataset specific."
+        ),
+    )
+    kwargs = parser.parse_args()
+    return vars(kwargs)["encoding_model_directory"]
+
+
+def linear_receptive_field_argparse(parser):
+    """Handle evaluation argparsing.
+
+    Args:
+        parser (ArgumentParser): ArgumentParser for function call.
+
+    Returns:
+        dict: dictionary of kwargs and values.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--report_path",
+        type=str,
+        help="Path to the report to be evaluated.",
+        default="/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-14_18:13:10/hyperparametersearch_report.npy",
+    )
+    parser.add_argument(
+        "--filter_path",
+        type=str,
+        help="Path to the filter to be evaluated.",
+        default="/home/leon/csng_invariances/models/linear_filter/2021-10-14_18:13:10/evaluated_filter.npy",
+    )
+    parser.add_argument(
+        "--count", type=int, help="Number of filters to plot.", default=5
+    )
+    kwargs = parser.parse_args()
+    return vars(kwargs)
+
+
+################################DNN ENCODING###############################
 def encode(parsed_kwargs):
     """Encode and evaluate model.
 
     Args:
         parsed_kwargs (namespace): Namespace of parsed config arguments.
-
-        model: Trained encoding model.
     """
 
     def train_lurz_readout_encoding(
@@ -336,9 +397,14 @@ def encode(parsed_kwargs):
         }
 
         # Download data and model if necessary
-        download_lurz2020_data() if (
-            lurz_data_directory / "README.md"
-        ).is_file() is False else None
+        dataset = Lurz2021Dataset(
+            dataset_config=dataset_config,
+            device=device,
+            dataset_type="train",
+            image_preprocessing=image_preprocessing,
+            response_preprocessing=response_preprocessing,
+        )
+
         download_pretrained_lurz_model() if (
             lurz_model_path
         ).is_file() is False else None
@@ -347,16 +413,13 @@ def encode(parsed_kwargs):
         print(
             f"Running current dataset config:\n{json.dumps(dataset_config, indent=2)}"
         )
-        dataloaders = static_loaders(
-            image_preprocessing=image_preprocessing,
-            response_preprocessing=response_preprocessing,
-            **dataset_config,
-        )
 
         # Model setup
         print(f"Running current model config:\n{json.dumps(model_config, indent=2)}")
         # build model
-        model = se2d_fullgaussian2d(**model_config, dataloaders=dataloaders, seed=seed)
+        model = se2d_fullgaussian2d(
+            **model_config, dataloaders=dataset.dataloaders, seed=seed
+        )
         # load state_dict of pretrained core
         transfer_model = torch.load(
             lurz_model_path,
@@ -375,7 +438,7 @@ def encode(parsed_kwargs):
         kwargs = dict(dataset_config, **model_config)
         kwargs.update(trainer_config)
         config.update(kwargs)
-        lurz_trainer(model=model, dataloaders=dataloaders, **trainer_config)
+        lurz_trainer(model=model, dataloaders=dataset.dataloaders, **trainer_config)
 
         # Saving model (core + readout)
         t = string_time()
@@ -391,7 +454,8 @@ def encode(parsed_kwargs):
             "trainer_config": trainer_config,
         }
         save_configs(configs, readout_model_directory)
-        encoding_report_directory = Path.cwd() / "reports" / "encoding"
+        t = string_time()
+        encoding_report_directory = Path.cwd() / "reports" / "encoding" / t
         encoding_report_path = encoding_report_directory / "readme.md"
         if encoding_report_path.is_file() is False:
             encoding_report_directory.mkdir(parents=True, exist_ok=True)
@@ -405,7 +469,7 @@ def encode(parsed_kwargs):
                     "group."
                 )
         print(f"Model and configs are stored at {readout_model_directory}")
-        return model, dataloaders, configs
+        return model, dataset, configs
 
     def evaluate_lurz_readout_encoding(model, dataloaders, configs):
         """Evalutes the trained encoding model.
@@ -441,7 +505,7 @@ def encode(parsed_kwargs):
 
         # Fraction Oracle can only be computed on the test set. It requires the dataloader to give out batches of repeats of images.
         # This is achieved by building a dataloader with the argument "return_test_sampler=True"
-        oracle_dataloader = static_loaders(
+        oracle_dataloader = Lurz2021Dataset.static_loaders(
             **dataset_config, return_test_sampler=True, tier="test"
         )
         fraction_oracle = get_fraction_oracles(
@@ -456,171 +520,22 @@ def encode(parsed_kwargs):
         print("Fraction oracle (test set):   {0:.3f}".format(fraction_oracle))
 
     if vars(parsed_kwargs)["dataset"] == "Lurz":
-        model, dataloaders, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
-        evaluate_lurz_readout_encoding(model, dataloaders, configs)
+        model, dataset, configs = train_lurz_readout_encoding(**vars(parsed_kwargs))
+        evaluate_lurz_readout_encoding(model, dataset.dataloaders, configs)
         model.eval()
-
-    return model
-
-
-def load_parser():
-    """Handle encoding model directory parsing.
-
-    Returns:
-        str: Model directory.
-    """
-    # TODO Move to models.encoding
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--encoding_model_directory",
-        type=str,
-        help=(
-            "Directory of the trained encoding model. Recall, the model must "
-            "fit to the dataset, as the readout is dataset specific."
-        ),
-    )
-    kwargs = parser.parse_args()
-    return vars(kwargs)["encoding_model_directory"]
-
-
-def load_encoding_model(model_directory):
-    """Load pretrained encoding model.
-
-    Loads an encoding model which was pretrained for a specific dataset. The
-    model is return in eval model. I.e. dropout and other things are deactivated
-    which cause inference.
-
-    Args:
-        model_directory (str): path to model directory to load from.
-
-    Returns:
-        model: Trained encoding model in evaluation state.
-    """
-    # TODO Move to models.encoding
-    configs = load_configs(model_directory)
-    print(f"Model was trained on {configs['trainer_config']['device']}.\n")
-    configs = adapt_config_to_machine(configs)
-    dataloaders = static_loaders(**configs["dataset_config"])
-    model = se2d_fullgaussian2d(
-        **configs["model_config"],
-        dataloaders=dataloaders,
-        seed=configs["dataset_config"]["seed"],
-    )
-    model.load_state_dict(
-        torch.load(
-            Path(model_directory) / "Pretrained_core_readout_lurz.pth",
-            map_location=configs["trainer_config"]["device"],
-        )
-    )
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    print(f"Model runs in evaluation mode on {device}.")
-    model.eval()
-    return model
-
-
-def get_single_neuron_correlation(model, images, responses, batch_size=64, **kwargs):
-    """Computes the single neuron corrlations.
-
-    Args:
-        model (nn.Module): Encoding model to use for predictions
-        images (tensor): image tensor
-        responses (tensor): response tensor
-
-    Returns:
-        tensor: single neuron correlations tensor of dimension (neuron_count,
-            image_count)
-    """
-    # TODO Move to metrics_statistics.correlations
-    neuron_count = responses.shape[1]
-    image_count = responses.shape[0]
-    num_batches, num_images_last_batch = divmod(image_count, batch_size)
-
-    device = torch.device("cuda" if next(model.parameters()).is_cuda else "cpu")
-    single_neuron_correlations = torch.empty(neuron_count, device=device)
-    predictions = torch.empty_like(responses)
-    with torch.no_grad():
-        for batch in track(range(num_batches)):
-            image_batch = images[
-                (batch) * batch_size : (batch + 1) * batch_size, :, :, :
-            ]
-            prediction_batch = model(image_batch.to(device))
-            print(prediction_batch.shape)
-            predictions[
-                (batch) * batch_size : (batch + 1) * batch_size, :
-            ] = prediction_batch
-        image_last_batch = images[
-            (num_batches * batch_size) : (
-                num_batches * batch_size + num_images_last_batch
-            ),
-            :,
-            :,
-            :,
-        ]
-        prediction_last_batch = model(image_last_batch.to(device))
-        predictions[
-            (num_batches * batch_size) : (
-                num_batches * batch_size + num_images_last_batch
-            ),
-            :,
-        ] = prediction_last_batch
-    for neuron in track(range(neuron_count)):
-        single_neuron_correlation = np.corrcoef(
-            responses[:, neuron], predictions[:, neuron]
-        )[0, 1]
-        single_neuron_correlations[neuron] = single_neuron_correlation
-
-    # TODO Save single neuron correlation
-    t = string_time()
-    directory = Path.cwd() / "reports" / "encoding" / "single_neuron_correlations" / t
-    np.save()
-    # TODO save with torch.save as single_neuron_correlations.pt
-    return single_neuron_correlations
+    else:
+        print("Not yet implemented.")
+    return model, dataset, configs
 
 
 ################################LINEAR FILTER###############################
-def get_lurz_dataset():
-    """Get Lurz data.
-
-    Returns:
-        tuple: Tuple of train_images, train_responses, val_images and val_responses.
-    """
-    # Load dataset
-    experiment_path = str(
-        Path.cwd() / "data" / "external" / "lurz2020" / "static20457-5-9-preproc0"
-    )
-    print(f"Loading dataset from {experiment_path}.")
-    dataloaders, _ = lu.get_dataloaders()
-    train_images, train_responses = lu.get_complete_dataset(dataloaders, "train")
-    val_images, val_responses = lu.get_complete_dataset(dataloaders, "validation")
-    return train_images, train_responses, val_images, val_responses
-
-
-def get_antolik_dataset(region):
-    """Get Antolik data.
-
-    Args:
-        region (str): Region to examine.
-
-    Returns:
-        tuple: Tuple of train_images, train_responses, val_images and val_responses
-    """
-    # Load dataset
-    experiment_path = Path.cwd() / "data" / "external" / "antolik2016" / "Data"
-    print(f"Loading data from {experiment_path}.")
-    dataloaders = al.get_dataloaders()
-    train_images, train_responses = al.get_complete_dataset(
-        dataloaders, "train", region
-    )
-    val_images, val_responses = al.get_complete_dataset(
-        dataloaders, "validation", region
-    )
-    return train_images, train_responses, val_images, val_responses
-
-
 def globally_regularized_linear_receptive_field(
-    reg_factors, train_images, train_responses, val_images, val_responses
-):
+    reg_factors: list,
+    train_images: torch.Tensor,
+    train_responses: torch.Tensor,
+    val_images: torch.Tensor,
+    val_responses: torch.Tensor,
+) -> Tuple[GlobalRegularizationFilter, GlobalRegularizationFilter]:
     """Globally regularized linear receptive field estimate experiments on Lurz data.
 
     Conduct hyperparametersearch for regularization factor.
@@ -636,17 +551,16 @@ def globally_regularized_linear_receptive_field(
         val_responses (np.array): 2D representation of val response data.
 
     Returns:
-        tuple: tuple of dict of regularization factors and correlations,filter
-            and dictionary of neurons and single neuron correlation.
+        tuple: tuple of TrainFilter and ValFilter
     """
 
     # Build filters for estimation of linear receptive field
-    TrainFilter = lin_fil.GlobalRegularizationFilter(
+    TrainFilter = GlobalRegularizationFilter(
         image_preprocessing(train_images),
         response_preprocessing(train_responses),
         reg_type="ridge regularized",
     )
-    ValFilter = lin_fil.GlobalRegularizationFilter(
+    ValFilter = GlobalRegularizationFilter(
         image_preprocessing(val_images),
         response_preprocessing(val_responses),
         reg_type="ridge regularized",
@@ -656,7 +570,7 @@ def globally_regularized_linear_receptive_field(
     print(
         f"Conducting hyperparametersearch for regularization factor from:\n{reg_factors}."
     )
-    Hyperparametersearch = lin_fil.GlobalHyperparametersearch(
+    Hyperparametersearch = GlobalHyperparametersearch(
         TrainFilter, ValFilter, reg_factors
     )
     Hyperparametersearch.conduct_search()
@@ -667,8 +581,11 @@ def globally_regularized_linear_receptive_field(
 
     # report linear filter
     ValFilter.evaluate(fil=fil, report_dir=Hyperparametersearch.report_dir)
+    TrainFilter.evaluate(fil=fil, reports=False)
+    return TrainFilter, ValFilter
 
 
+# TODO refactor
 def individually_regularized_linear_receptive_field(
     reg_factors, train_images, train_responses, val_images, val_responses
 ):
@@ -687,17 +604,15 @@ def individually_regularized_linear_receptive_field(
         val_responses (np.array): 2D representation of val response data.
 
     Returns:
-        tuple: tuple of 2D array of neuron, regularization factor and single neuron
-            correlation, filter and dictionary of neurons and single neuron
-            correlation.
+        Tuple: Tuple of TrainFilter and ValFilter
     """
     # Build filters for estimation of linear receptive field
-    TrainFilter = lin_fil.IndividualRegularizationFilter(
+    TrainFilter = IndividualRegularizationFilter(
         image_preprocessing(train_images),
         response_preprocessing(train_responses),
         reg_type="ridge regularized",
     )
-    ValFilter = lin_fil.IndividualRegularizationFilter(
+    ValFilter = IndividualRegularizationFilter(
         image_preprocessing(val_images),
         response_preprocessing(val_responses),
         reg_type="ridge regularized",
@@ -707,7 +622,7 @@ def individually_regularized_linear_receptive_field(
     print(
         f"Conducting hyperparametersearch for regularization factor from:\n{reg_factors}"
     )
-    Hyperparametersearch = lin_fil.IndividualHyperparametersearch(
+    Hyperparametersearch = IndividualHyperparametersearch(
         TrainFilter, ValFilter, reg_factors
     )
     Hyperparametersearch.conduct_search()
@@ -717,63 +632,80 @@ def individually_regularized_linear_receptive_field(
 
     # report linear filter
     ValFilter.evaluate(fil=fil, report_dir=Hyperparametersearch.report_dir)
-
-
-def linear_receptive_field_argparse(parser):
-    """Handle evaluation argparsing.
-
-    Args:
-        parser (ArgumentParser): ArgumentParser for function call.
-
-    Returns:
-        dict: dictionary of kwargs and values.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--report_path",
-        type=str,
-        help="Path to the report to be evaluated.",
-        default="/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-14_18:13:10/hyperparametersearch_report.npy",
-    )
-    parser.add_argument(
-        "--filter_path",
-        type=str,
-        help="Path to the filter to be evaluated.",
-        default="/home/leon/csng_invariances/models/linear_filter/2021-10-14_18:13:10/evaluated_filter.npy",
-    )
-    parser.add_argument(
-        "--count", type=int, help="Number of filters to plot.", default=5
-    )
-    kwargs = parser.parse_args()
-    return vars(kwargs)
-
-
-def load_linear_filter_single_neuron_correlations(path: str) -> torch.Tensor:
-    # TODO Move to metrics_statistics.correlations
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    try:
-        if Path(path).suffix == ".csv":
-            csv = read_csv(path)
-            data = [float(csv.columns[1])]
-            for i in csv.iloc(axis=1)[1].to_list():
-                data.append(i)
-            data_tensor = torch.Tensor(data, device=device)
-        elif Path(path).suffix == ".npy":
-            data = load(path)
-            data_tensor = torch.from_numpy(data)
-            data_tensor.to(device)
-    except Exception:
-        print(
-            "An error occured. The file could not be loaded. Is the path correct? "
-            "Is it either a csv or a npy file?"
-        )
+    return TrainFilter, ValFilter
 
 
 ################################EXPERIMENT###############################
-# TODO write experiment function
-def experiment_encoding():
-    pass
+def experiment_encoding() -> Tuple[
+    torch.nn.Module, Filter, list, torch.Tensor, torch.Tensor
+]:
+    """Run encoding experiment
+
+    Returns:
+        Tuple[torch.nn.Module, Filter, list, torch.Tensor, torch.Tensor]:
+            Tuple of encoding_model, train_filter, selected_neuron_idxs, mask, roi
+    """
+    namespace = encoding_parser()
+    encoding_model, dataset, _ = encode(namespace)
+
+    # loading model
+    # encoding_model = load_encoding_model(
+    #     "/home/leon/csng_invariances/models/encoding/2021-11-29_14:52:20"
+    # )
+    # configs = load_configs(
+    #     "/home/leon/csng_invariances/models/encoding/2021-11-29_14:52:20"
+    # )
+    # dataset = Lurz2021Dataset(
+    #     dataset_config=configs["dataset_config"],
+    #     image_preprocessing=image_preprocessing,
+    #     response_preprocessing=response_preprocessing,
+    # )
+
+    train_images, train_responses = dataset.get_dataset(dataset_type="train")
+    val_images, val_responses = dataset.get_dataset(dataset_type="validation")
+    single_neuron_correlations_encoding_model = (
+        compute_single_neuron_correlations_encoding_model(
+            encoding_model, train_images, train_responses
+        )
+    )
+    regfactors = logspace(-5, 5, 25)
+    train_filter, validation_filter = globally_regularized_linear_receptive_field(
+        regfactors, train_images, train_responses, val_images, val_responses
+    )
+    single_neuron_correlations_linear_filter = (
+        compute_single_neuron_correlations_linear_filter(validation_filter)
+    )
+    print("Computining selection scores.")
+    scores = score(
+        single_neuron_correlations_encoding_model.cpu(),
+        single_neuron_correlations_linear_filter.cpu(),
+    )
+    print("Selecting neurons.")
+    neuron_selection_idxs = select_neurons(scores, 5)
+    print("Computing Region Of Interest (ROI) and mask.")
+    random_idx = torch.randint(0, train_images.shape[0], (1, 1)).item()
+    one_response = train_responses[random_idx, :]
+    one_image = train_images[random_idx, :, :, :].reshape(
+        1, 1, train_images.shape[2], train_images.shape[3]
+    )
+    mask, roi = NaiveMask.compute_mask(
+        one_image,
+        one_response,
+        encoding_model,
+    )
+    return encoding_model, train_filter, neuron_selection_idxs, mask, roi
 
 
 if __name__ == "__main__":
-    experiment_encoding()
+    (
+        encoding_model,
+        train_filter,
+        neuron_selection_idxs,
+        mask,
+        roi,
+    ) = experiment_encoding()
+    print(encoding_model)
+    print(train_filter)
+    print(neuron_selection_idxs)
+    print(mask)
+    print(roi)

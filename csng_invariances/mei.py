@@ -2,8 +2,14 @@
 
 
 def mei_generation():
+    # TODO finalize mei computation
     from csng_invariances.encoding import load_encoding_model
-    from csng_invariances.encoding import get_single_neuron_correlation as dnn_corrs
+    from csng_invariances.metrics_statistics.correlations import (
+        compute_single_neuron_correlations_encoding_model as dnn_corrs,
+    )
+    from csng_invariances.metrics_statistics.correlations import (
+        load_single_neuron_correlations_linear_filter,
+    )
     from csng_invariances.training.mei import mei
     from csng_invariances.layers.loss_function import SelectedNeuronActivation
     from csng_invariances.data.datasets import (
@@ -12,13 +18,8 @@ def mei_generation():
     )
     from csng_invariances.metrics_statistics.select_neurons import select_neurons, score
     from csng_invariances.data._data_helpers import load_configs
-    from csng_invariances.encoding import (
-        load_linear_filter_single_neuron_correlations,
-    )
 
-    model_directory = (
-        "/Users/leongorissen/csng_invariances/models/encoding/2021-11-12_17:00:58"
-    )
+    model_directory = "/home/leon/csng_invariances/models/encoding/2021-11-30_15:15:03"
     encoding_model = load_encoding_model(model_directory)
     configs = load_configs(model_directory)
     ds = Lurz2021Dataset(dataset_config=configs["dataset_config"])
@@ -33,15 +34,15 @@ def mei_generation():
         responses,
         batch_size=configs["dataset_config"]["batch_size"],
     )
-    linear_filter_single_neuron_correlations = load_linear_filter_single_neuron_correlations(
-        "/Users/leongorissen/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-29_10:31:45/Correlations.csv"
+    linear_filter_single_neuron_correlations = load_single_neuron_correlations_linear_filter(
+        "/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-11-30_15:15:09/Correlations.csv"
     )
     selection_score = score(
         dnn_single_neuron_correlations, linear_filter_single_neuron_correlations
     )
     select_neuron_indicies = select_neurons(selection_score, 5)
-    meis = mei(criterion, encoding_model, gwni, select_neuron_indicies)
+    meis = mei(criterion, encoding_model, gwni, select_neuron_indicies, epochs=2000)
 
 
 if __name__ == "__main__":
-    pass
+    mei_generation()
