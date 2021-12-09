@@ -21,13 +21,13 @@ def make_video(
     lr: float,
     weight_decay: float,
 ) -> None:
-    image_dir = Path.cwd() / "video" / f"neuron_{neuron}"
+    image_dir = Path.cwd() / "reports" / "videos" / string_time / f"neuron_{neuron}"
     image_folder = str(image_dir)
     l, r = str(lr).split(".")
     lr = l + ":" + r
     weight, decay = str(weight_decay).split(".")
     weight_decay = weight + ":" + decay
-    video_dir = Path.cwd() / "video" / string_time
+    video_dir = Path.cwd() / "reports" / "videos" / string_time / f"neuron_{neuron}"
     video_dir.mkdir(parents=True, exist_ok=True)
     video_name = f"video_{neuron}_{generator_name}_batchsize_{batch_size}_numbatches_{num_batches}_latent_{latent_space_dimension}_epochs_{epochs}_lr_{lr}_l2_{weight_decay}.avi"
     video_name = str(video_dir / video_name)

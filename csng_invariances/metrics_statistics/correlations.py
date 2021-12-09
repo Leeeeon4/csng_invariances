@@ -152,7 +152,6 @@ def load_single_neuron_correlations_linear_filter(
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     try:
-        print(Path(path))
         if Path(path).suffix == ".csv":
             csv = read_csv(Path(path))
             data = [float(csv.columns[1])]

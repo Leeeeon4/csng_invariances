@@ -15,6 +15,7 @@ from pathlib import Path
 
 from csng_invariances.data._data_helpers import scale_tensor_to_0_1 as norm
 
+# TODO safe final linear filter in ./data
 
 figure_sizes = {
     "full": (8, 5.6),

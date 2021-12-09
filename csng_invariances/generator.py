@@ -1,4 +1,4 @@
-"""Generator training experiment module."""
+ """Generator training experiment module."""
 
 import torch
 from csng_invariances.models.encoding import load_encoding_model

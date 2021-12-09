@@ -74,6 +74,8 @@ def mei(
     Returns:
         dict: Dictionary of neuron_idx and the associated MEI.
     """
+    # TODO implement gradient preconditioning
+    # TODO integrate wandb
     show_last = True
     meis = {}
     t = string_time()
@@ -107,12 +109,13 @@ def mei(
                 plt.pause(0.1)
                 plt.close()
         save(
-            meis_directoy / f"MEI_neuron_{neuron}.npy", new_image.detach().cpu().numpy()
+            file=meis_directoy / f"MEI_neuron_{neuron}.npy",
+            arr=new_image.detach().cpu().numpy(),
         )
         if (meis_directoy / "readme.md").exists() is False:
             with open(meis_directoy / "readme.md", "w") as f:
                 f.write(
-                    "# readme\n"
+                    "# Most Exciting Images\n"
                     "The MEIs (Most Exciting Images) store the pytorch 4D representation"
                     "of the image per neuron. Dimensions are (batchsize, channels, "
                     "height, width)."

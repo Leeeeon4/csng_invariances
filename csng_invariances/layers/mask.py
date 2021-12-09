@@ -9,6 +9,9 @@ from pathlib import Path
 from csng_invariances._utils.utlis import string_time
 
 
+# TODO save roi to data
+
+
 class NaiveMask(torch.nn.Module):
     def __init__(self, mask: torch.Tensor, neuron: int, device: str = None) -> None:
         """Instatiate masking module.
@@ -39,6 +42,7 @@ class NaiveMask(torch.nn.Module):
         """
         return x * self.mask
 
+    # TODO check if roi and mask are (n, c, h, w) tensor
     @staticmethod
     def compute_mask(
         one_image: torch.Tensor,
@@ -188,6 +192,12 @@ class NaiveMask(torch.nn.Module):
                         activation_differences, dim=1
                     )
                     del activation_differences
+            pixel_standard_deviations = pixel_standard_deviations.reshape(
+                pixel_standard_deviations[0],
+                1,
+                pixel_standard_deviations[1],
+                pixel_standard_deviations[2],
+            )
             if computation_type == "max_std":
                 mask = maximum_relative_threshold_mask(
                     threshold, pixel_standard_deviations
@@ -198,6 +208,18 @@ class NaiveMask(torch.nn.Module):
                 )
             else:
                 mask = constant_threshold_mask(threshold, pixel_standard_deviations)
+            pixel_standard_deviations = pixel_standard_deviations.reshape(
+                pixel_standard_deviations[0],
+                1,
+                pixel_standard_deviations[1],
+                pixel_standard_deviations[2],
+            )
+            mask = mask.reshape(
+                pixel_standard_deviations[0],
+                1,
+                pixel_standard_deviations[1],
+                pixel_standard_deviations[2],
+            )
         t = string_time()
         mask_directory = Path.cwd() / "models" / "masks" / t
         mask_directory.mkdir(parents=True, exist_ok=True)

@@ -204,8 +204,8 @@ def save_configs(configs, model_directory):
                 json.dump(value, outfile, indent=2)
     elif "device" in configs:
         configs["device"] = str(configs["device"])
-        with open(model_directory / f"config.json", "w") as outfile:
-            json.dump(configs, outfile, indent=2)
+    with open(model_directory / f"config.json", "w") as outfile:
+        json.dump(configs, outfile, indent=2)
 
 
 def load_configs(model_directory: str) -> dict:

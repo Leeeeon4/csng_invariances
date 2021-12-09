@@ -1,10 +1,10 @@
 """Module providing training loops for the generator model."""
 
+import json
 import torch
 import wandb
 import matplotlib.pyplot as plt
 from numpy import save
-
 from rich import print
 from rich.progress import track
 from pathlib import Path
@@ -12,7 +12,6 @@ from typing import Callable, List, Tuple
 from csng_invariances._utils.utlis import string_time
 from csng_invariances._utils.video_maker import make_video
 from csng_invariances.data._data_helpers import save_configs, scale_tensor_to_0_1
-
 from csng_invariances.models.gan import GANModel
 from csng_invariances.layers.loss_function import SelectedNeuronActivation
 from csng_invariances.layers.mask import NaiveMask
@@ -24,11 +23,13 @@ class Trainer:
         generator_model: torch.nn.Module,
         encoding_model: torch.nn.Module,
         data: list,
+        config: dict = {},
         mask: torch.Tensor = None,
         image_preprocessing: Callable = None,
         response_preprocessing: Callable = None,
         device: str = None,
         epochs: int = 50,
+        wandb_entity: str = "leeeeon4",
         *arg: int,
         **kwargs: dict,
     ) -> None:
@@ -39,6 +40,7 @@ class Trainer:
             data (list): list of latent_vectors.
                 latent vectors are of shape (latent_dimension, batch_size).
                 data is of len(batches).
+            config (dict): Configuration dictionary
             mask (torch.nn.Module, optional): masking layer. Defaults to None.
             image_preprocessing (Callable, optional): image preprocessing function.
                 Defaults to None.
@@ -52,13 +54,22 @@ class Trainer:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
+        self.wandb_entity = wandb_entity
+        self.config = config
+        self.config["device"] = str(self.device)
         self.data = data
         self.latent_space_dimension = self.data[0].shape[1]
+        self.config["latent_space_dimension"] = self.latent_space_dimension
         self.epochs = epochs
+        self.config["epochs"] = self.epochs
         self.batches = len(self.data)
+        self.config["number_of_batches"] = self.batches
         self.batch_size = self.data[0].shape[0]
+        self.config["batch_size"] = self.batch_size
         self.generator_model = generator_model
+        self.config["generator_model"] = self.generator_model.__class__.__name__
         self.encoding_model = encoding_model
+        self.config["encoding_model"] = self.encoding_model.__class__.__name__
         if mask is None:
             mask = torch.ones(
                 size=(5335, 36, 64),
@@ -66,24 +77,19 @@ class Trainer:
                 requires_grad=True,
                 device=self.device,
             )
+            self.config["mask"] = "No mask used"
+        else:
+            self.config["mask"] = "A mask was used"
         self.mask = mask
         for obj in [self.mask, self.encoding_model, self.generator_model]:
             obj = obj.to(self.device)
         self.image_preprocessing = image_preprocessing
         self.response_preprocessing = response_preprocessing
-        self.config = kwargs
 
 
 class NaiveTrainer(Trainer):
     def __init__(
         self,
-        generator_model: torch.nn.Module,
-        encoding_model: torch.nn.Module,
-        data: List[torch.Tensor],
-        mask: torch.Tensor = None,
-        image_preprocessing: Callable = None,
-        response_preprocessing: Callable = None,
-        epochs: int = 50,
         lr: float = 0.0001,
         betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
@@ -100,6 +106,7 @@ class NaiveTrainer(Trainer):
             data (list): list of latent_vectors.
                 latent vectors are of shape (latent_dimension, batch_size).
                 data is of len(batches).
+            config (dict): Config dictionary.
             mask (torch.nn.Module, optional): masking layer. Defaults to None.
             image_preprocessing (Callable, optional): image preprocessing function.
                 Defaults to None.
@@ -117,34 +124,47 @@ class NaiveTrainer(Trainer):
                 a way which allows for easy video creation.
         """
         super().__init__(
-            generator_model,
-            encoding_model,
-            data,
-            mask=mask,
-            image_preprocessing=image_preprocessing,
-            response_preprocessing=response_preprocessing,
-            epochs=epochs,
             *arg,
             **kwargs,
         )
         self.lr = lr
+        self.config["lr"] = self.lr
         self.betas = betas
+        self.config["betas"] = self.betas
         self.eps = eps
+        self.config["eps"] = self.eps
         self.weight_decay = weight_decay  # a weight decay of 0.001 and 0.01 lead to highly overfitted generator for latent dim 128, batchsize = 64 and num_batches = 16
+        self.config["weight_decay"] = self.weight_decay
         self.show_development = show_development
         self.prep_video = prep_video
+        _, self.channels, self.height, self.width = self.generator_model.output_shape
         if self.prep_video:
             self.show_development = True
 
-    def train(self, selected_neuron: int):
+    def train(
+        self, selected_neuron_idx: int
+    ) -> Tuple[torch.nn.Module, torch.Tensor, dict]:
+        """Train GAN
+
+        Args:
+            selected_neuron_idx (int): current neuron
+
+        Returns:
+            Tuple[torch.nn.Module, torch.Tensor, dict]: Tuple of generator model,
+                epochs tensor (first image per epoch), config
+        """
         run = wandb.init(
-            project="invariances_generator_growing_linear_generator", entity="leeeeon4"
+            project=f"invariances_generator_{self.generator_model.__class__.__name__}",
+            entity=self.wandb_entity,
         )
-        t = string_time()
+        wandb_name = run.name
+        self.config["wandb_name"] = wandb_name
+        t = self.config["Timestamp"]
+        t = f"{t}_{wandb_name}"
         config = wandb.config
-        self.config["selected_neuron"] = selected_neuron
-        config.update(self.config, allow_val_change=True)
-        self.masking_layer = NaiveMask(self.mask, selected_neuron)
+        self.config["selected_neuron_idx"] = selected_neuron_idx
+        self.masking_layer = NaiveMask(self.mask, selected_neuron_idx)
+        self.config["masking_layer"] = self.masking_layer.__class__.__name__
         self.masking_layer = self.masking_layer.to(self.device)
         gan = GANModel(
             self.generator_model,
@@ -153,6 +173,7 @@ class NaiveTrainer(Trainer):
             self.image_preprocessing,
             self.response_preprocessing,
         )
+        self.config["gan"] = gan.__class__.__name__
         gan = gan.to(self.device)
         optimizer = torch.optim.Adam(
             params=self.generator_model.parameters(),
@@ -161,10 +182,25 @@ class NaiveTrainer(Trainer):
             eps=self.eps,
             weight_decay=self.weight_decay,
         )
+        self.config["optimizer"] = optimizer.__class__.__name__
+        for param_group in optimizer.param_groups:
+            for key, value in param_group.items():
+                if key == "params":
+                    continue
+                self.config[key] = value
         loss_function = SelectedNeuronActivation()
+        self.config["loss_function"] = loss_function.__class__.__name__
         loss_function = loss_function.to(self.device)
         running_loss = 0.0
+        print(f"Running config: {json.dumps(self.config, indent=2)}")
+        config.update(self.config, allow_val_change=True)
         print("Epoch 0:")
+        self.data[0]
+        epochs = torch.empty(
+            size=(self.epochs, self.channels, self.height, self.width),
+            device=self.device,
+            dtype=torch.float,
+        )
         for epoch in range(self.epochs):
             for batch in track(
                 range(self.batches),
@@ -173,11 +209,10 @@ class NaiveTrainer(Trainer):
             ):
                 optimizer.zero_grad()
                 inputs = self.data[batch]
-
                 inputs = inputs.to(self.device)
                 activations, preprocessed_sample, masked_sample, sample = gan(inputs)
                 activations = activations.to(self.device)
-                loss = loss_function(activations, selected_neuron)
+                loss = loss_function(activations, selected_neuron_idx)
                 loss.backward()
                 wandb.log({"loss": loss})
                 optimizer.step()
@@ -197,6 +232,7 @@ class NaiveTrainer(Trainer):
                     / "generator"
                     / "during_training"
                     / t
+                    / f"neuron_{selected_neuron_idx}"
                 )
                 image_directory.mkdir(parents=True, exist_ok=True)
                 data_directory = (
@@ -206,11 +242,11 @@ class NaiveTrainer(Trainer):
                     / "generator"
                     / "during_training"
                     / t
-                    / f"neuron_{selected_neuron}"
+                    / f"neuron_{selected_neuron_idx}"
                 )
                 data_directory.mkdir(parents=True, exist_ok=True)
                 save(
-                    file=data_directory / f"Epoch_{epoch}_00_sample.npy",
+                    file=data_directory / f"Epoch_{epoch}_00_samples.npy",
                     arr=sample.detach().cpu().numpy(),
                 )
                 plt.imshow(sample[0, :, :, :].detach().cpu().squeeze())
@@ -219,7 +255,7 @@ class NaiveTrainer(Trainer):
                 plt.savefig(image_directory / f"Epoch_{epoch}_00_sample.jpg")
                 plt.close()
                 save(
-                    file=data_directory / f"Epoch_{epoch}_01_masked_sample.npy",
+                    file=data_directory / f"Epoch_{epoch}_01_masked_samples.npy",
                     arr=masked_sample.detach().cpu().numpy(),
                 )
                 plt.imshow(masked_sample[0, :, :, :].detach().cpu().squeeze())
@@ -228,7 +264,7 @@ class NaiveTrainer(Trainer):
                 plt.savefig(image_directory / f"Epoch_{epoch}_01_masked_sample.jpg")
                 plt.close()
                 save(
-                    file=data_directory / f"Epoch_{epoch}_02_preprocessed_sample.npy",
+                    file=data_directory / f"Epoch_{epoch}_02_preprocessed_samples.npy",
                     arr=preprocessed_sample.detach().cpu().numpy(),
                 )
                 # scale images for displaying
@@ -244,7 +280,13 @@ class NaiveTrainer(Trainer):
                     image_directory / f"Epoch_{epoch}_02_preprocessed_sample.jpg"
                 )
                 if self.prep_video:
-                    video_directory = Path.cwd() / "video" / f"neuron_{selected_neuron}"
+                    video_directory = (
+                        Path.cwd()
+                        / "reports"
+                        / "videos"
+                        / t
+                        / f"neuron_{selected_neuron_idx}"
+                    )
                     video_directory.mkdir(parents=True, exist_ok=True)
                     plt.savefig(video_directory / f"{epoch:02d}.jpg")
                 plt.close()
@@ -258,7 +300,7 @@ class NaiveTrainer(Trainer):
                             batch_size=self.batch_size,
                             num_batches=self.batches,
                             latent_space_dimension=self.latent_space_dimension,
-                            neuron=selected_neuron,
+                            neuron=selected_neuron_idx,
                             epochs=self.epochs,
                             lr=self.lr,
                             weight_decay=self.weight_decay,
@@ -268,33 +310,35 @@ class NaiveTrainer(Trainer):
                         )
 
             running_loss = 0.0
-        t = string_time()
+            epochs[epoch, :, :, :] = preprocessed_sample[0, :, :, :]
+
         generator_model_directory = Path.cwd() / "models" / "generator" / t
         generator_model_directory.mkdir(parents=True, exist_ok=True)
         torch.save(
             self.generator_model.state_dict(),
             generator_model_directory
-            / f"Trained_generator_neuron_{selected_neuron}.pth",
+            / f"Trained_generator_neuron_{selected_neuron_idx}.pth",
         )
         save_configs(self.config, generator_model_directory)
-        generator_report_directory = Path.cwd() / "reports" / "generator"
+        generator_report_directory = Path.cwd() / "reports" / "generator" / t
         generator_model_directory.mkdir(parents=True, exist_ok=True)
-        encoding_report_path = generator_report_directory / "readme.md"
-        if encoding_report_path.is_file() is False:
+        generator_report_path = generator_report_directory / "readme.md"
+        if generator_report_path.is_file() is False:
             generator_report_directory.mkdir(parents=True, exist_ok=True)
-            with open(encoding_report_path, "w") as file:
+            with open(generator_report_path, "w") as file:
                 file.write(
                     "# Generator\n"
                     "Generator training was tracked using weights and biases. "
                     "Reports may be found at:\n"
-                    "https://wandb.ai/csng-cuni/invariances_generator_growing_linear_generator\n"
+                    f"https://wandb.ai/csng-cuni/invariances_generator_{self.generator_model.__class__.__name__}\n"
                     "Reports are only accessible to members of the csng_cuni "
                     "group.\n"
                     "## Neuron specificity\n"
-                    "Generators are neuron specific. Please filter for 'selected_neuron' "
+                    "Generators are neuron specific. Please filter for 'selected_neuron_idx' "
                     "when looking at generator model performace, as all generators "
                     "are stored in one WandB project."
                 )
         print(f"Model and configs are stored at {generator_model_directory}")
         run.finish()
-        return self.generator_model
+        del self.masking_layer
+        return self.generator_model, epochs, self.config

@@ -10,6 +10,8 @@ import numpy as np
 import torch
 import wandb
 
+# TODO wandb.run.name
+
 from functools import partial
 from rich import print
 from rich.progress import track

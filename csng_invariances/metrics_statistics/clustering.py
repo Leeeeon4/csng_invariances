@@ -12,7 +12,7 @@ def cluster_generated_images(
     images: torch.Tensor,
     activations: torch.Tensor,
     selected_neuron_idx: int,
-    num_clusters: int = 6,
+    num_clusters: int = 8,
     show: bool = False,
 ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     """Cluster generated images.
@@ -46,7 +46,7 @@ def cluster_generated_images(
     sorted_activations = []
     for i in range(num_clusters):
         sorted_images.append(images[clusters == i, :, :, :])
-        sorted_activations.append(activations[clusters == i, :])
+        sorted_activations.append(activations[clusters == i])
 
     if show:
         for i in range(num_clusters):

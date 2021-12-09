@@ -834,3 +834,7 @@ def uniform_latent_vector(
     """
     tensor = LatentVector(batch_size, latent_space_dimension, device)
     return torch.nn.init.uniform_(tensor.vector, low, high)
+
+
+if __name__ == "__main__":
+    pass

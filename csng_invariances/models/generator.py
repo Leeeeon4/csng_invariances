@@ -1,9 +1,12 @@
 """Module for generator model classes."""
-
+#%%
+import json
 import torch
 from torchvision.transforms import GaussianBlur
 from typing import OrderedDict, Tuple
 from math import log
+from pathlib import Path
+from csng_invariances.data._data_helpers import scale_tensor_to_0_1
 
 
 class Generator(torch.nn.Module):
@@ -28,9 +31,9 @@ class Generator(torch.nn.Module):
         """
         super().__init__()
         self.output_shape = output_shape
-        if batch_size is not None:
-            self.output_shape[0] = self.batch_size
         self.batch_size, self.channels, self.height, self.width = self.output_shape
+        if batch_size is not None:
+            self.batch_size = batch_size
         self.latent_space_dimension = latent_space_dimension
         self.batch_size = batch_size
         if device is None:
@@ -38,9 +41,10 @@ class Generator(torch.nn.Module):
         else:
             self.device = device
         self.batch_norm = batch_norm
-        self.normalization_layer = torch.nn.BatchNorm2d(
-            num_features=self.output_shape, device=self.device, dtype=torch.float
-        )
+        self.normalization_layer = torch.nn.LazyBatchNorm2d(device=self.device)
+        # torch.nn.BatchNorm2d(
+        #     num_features=self.output_shape, device=self.device, dtype=torch.float
+        # )
 
     def forward(self, x):
         """Forward pass through the model
@@ -57,9 +61,42 @@ class Generator(torch.nn.Module):
         # performs batch_norm if wanted
         if self.batch_norm:
             x = self.normalization_layer(x)
+        x = scale_tensor_to_0_1(x) * 255
         return x
 
+    @staticmethod
+    def load_trained_generator(model_directory: str) -> Tuple[dict, torch.nn.Module]:
+        """Load generator model depending on config.
 
+        Args:
+            model_directory (str): Directory in which model and config are stored.
+
+        Returns:
+            Tuple[dict, torch.nn.Module]: Tuple of config and generator_model
+        """
+        model_directory = Path(model_directory)
+        for file in model_directory.iterdir():
+            if file.suffix == ".pth":
+                model_name = file.name
+                print(model_name)
+        with open(model_directory / "config.json", "r") as config_file:
+            config = json.load(config_file)
+        print(f"Config is:\n{json.dumps(config, indent=2)}")
+        model_type = config["generator_model"]
+        if model_type == "GrowingLinearGenerator":
+            generator_model = GrowingLinearGenerator(**config)
+        elif model_type == "FullyConnectedGenerator":
+            generator_model = FullyConnectedGenerator(**config)
+        elif model_type == "FullyConnectedGeneratorWithGaussianBlurring":
+            generator_model = FullyConnectedGeneratorWithGaussianBlurring(**config)
+        else:
+            generator_model = Generator(**config)
+        generator_model.load_state_dict(torch.load(model_directory / model_name))
+        return config, generator_model
+
+
+#%%
+#%%
 class GrowingLinearGenerator(Generator):
     """Generator architecure of linear layers which grow by factor of layer_growth
     between every layer step.
@@ -67,21 +104,11 @@ class GrowingLinearGenerator(Generator):
 
     def __init__(
         self,
-        output_shape: Tuple[int, int, int, int] = (64, 1, 36, 64),
-        latent_space_dimension: int = 128,
-        batch_size: int = None,
-        device: str = None,
-        batch_norm: bool = False,
         layer_growth: float = 1.1,
         *args,
         **kwargs,
     ):
         super().__init__(
-            output_shape=output_shape,
-            latent_space_dimension=latent_space_dimension,
-            batch_size=batch_size,
-            device=device,
-            batch_norm=batch_norm,
             *args,
             **kwargs,
         )
@@ -133,20 +160,10 @@ class FullyConnectedGenerator(Generator):
 
     def __init__(
         self,
-        output_shape: torch.Size = (64, 1, 36, 64),
-        latent_space_dimension: int = 128,
-        batch_size: int = None,
-        device: str = None,
-        batch_norm: bool = False,
         *args,
         **kwargs,
     ):
         super().__init__(
-            output_shape=output_shape,
-            latent_space_dimension=latent_space_dimension,
-            batch_size=batch_size,
-            device=device,
-            batch_norm=batch_norm,
             *args,
             **kwargs,
         )
@@ -203,22 +220,12 @@ class FullyConnectedGenerator(Generator):
 class FullyConnectedGeneratorWithGaussianBlurring(FullyConnectedGenerator):
     def __init__(
         self,
-        output_shape: torch.Size = (64, 1, 36, 64),
-        latent_space_dimension: int = 128,
-        batch_size: int = None,
-        device: str = None,
-        batch_norm: bool = False,
         kernel_size: Tuple[int, int] = (3, 3),
-        sigma: Tuple[float, float] = (0.1, 2),
+        sigma: float = 0.5,
         *args,
         **kwargs,
     ):
         super().__init__(
-            output_shape=output_shape,
-            latent_space_dimension=latent_space_dimension,
-            batch_size=batch_size,
-            device=device,
-            batch_norm=batch_norm,
             *args,
             **kwargs,
         )
@@ -229,3 +236,16 @@ class FullyConnectedGeneratorWithGaussianBlurring(FullyConnectedGenerator):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = super().forward(x)
         return self.gaussian(x)
+
+
+# %%
+#%%
+if __name__ == "__main__":
+    Generator.load_trained_generator(
+        "/home/leon/csng_invariances/models/generator/2021-12-08_11:34:51"
+    )
+# %%
+
+# %%
+
+# %%
