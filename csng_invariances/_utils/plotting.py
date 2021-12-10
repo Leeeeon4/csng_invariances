@@ -1,8 +1,10 @@
 #%%
+import json
 from typing import List
 from pathlib import Path
 import torch
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from rich import print
 from numpy import load
 from csng_invariances.metrics_statistics.correlations import (
@@ -60,18 +62,24 @@ def plot_neuron_x_with_8_clusters(
         generator_model (torch.nn.Module): [description]
         config (dict): [description]
     """
+    ###################PREPORCESSING INPUT FOR PLOTTING########################
     axis_off = True
     num_clusters = len(clustered_images)
     num_epochs = epochs_images.shape[0]
-    one_lrf = scale_tensor_to_0_1(
-        lrf[selected_neuron_idx, :, :, :].detach().cpu().squeeze()
+    one_lrf = (
+        scale_tensor_to_0_1(lrf[selected_neuron_idx, :, :, :].detach().cpu().squeeze())
+        - 0.5
     )
-    one_roi = scale_tensor_to_0_1(
-        roi[selected_neuron_idx, :, :, :].detach().cpu().squeeze()
+    one_roi = (
+        scale_tensor_to_0_1(roi[selected_neuron_idx, :, :, :].detach().cpu().squeeze())
+        - 0.5
     )
     if mask is not None:
-        one_mask = scale_tensor_to_0_1(
-            mask[selected_neuron_idx, :, :, :].detach().cpu().squeeze()
+        one_mask = (
+            scale_tensor_to_0_1(
+                mask[selected_neuron_idx, :, :, :].detach().cpu().squeeze()
+            )
+            - 0.5
         )
 
     for key in meis.keys():
@@ -81,7 +89,7 @@ def plot_neuron_x_with_8_clusters(
             else:
                 neuron = str(selected_neuron_idx)
 
-    one_mei = scale_tensor_to_0_1(meis[neuron].detach().cpu().squeeze())
+    one_mei = scale_tensor_to_0_1(meis[neuron].detach().cpu().squeeze()) - 0.5
     one_mei_activation = encoding_model(
         meis[neuron].reshape(1, 1, one_mei.shape[0], one_mei.shape[1])
     )[:, selected_neuron_idx].item()
@@ -89,21 +97,23 @@ def plot_neuron_x_with_8_clusters(
     epochs_slicer = [i * (int(num_epochs / 4)) for i in range(4)]
 
     epochs_tensor_list = [
-        scale_tensor_to_0_1(epochs_images[i, :, :, :].detach().cpu().squeeze())
+        scale_tensor_to_0_1(epochs_images[i, :, :, :].detach().cpu().squeeze()) - 0.5
         for i in epochs_slicer
     ]
 
     clusters_tensor_list = [
-        scale_tensor_to_0_1(i[0, :, :, :].detach().cpu().squeeze())
+        scale_tensor_to_0_1(i[0, :, :, :].detach().cpu().squeeze()) - 0.5
         for i in clustered_images
     ]
     clusters_activation_list = [i[0].item() for i in clustered_activations]
 
-    fig, axes = plt.subplots(nrows=12, ncols=4, figsize=(8.27, 11.70))
+    #############################PLOTTING######################################
+    fig, axes = plt.subplots(nrows=13, ncols=4, figsize=(8.27, 11.70))
 
+    # build axes
     gs = axes[0, 0].get_gridspec()
     large_axes = []
-    for row in [0, 1, 4, 7]:
+    for row in [0, 1, 4, 7, 12]:
         for col in axes[row, :]:
             col.remove()
         large_axes.append(fig.add_subplot(gs[row, :]))
@@ -115,7 +125,7 @@ def plot_neuron_x_with_8_clusters(
         for ax in large_axes:
             ax.axis("off")
 
-    # Row 0
+    # Row 0, heading
     large_axes[0].text(
         0.5,
         0.5,
@@ -125,13 +135,14 @@ def plot_neuron_x_with_8_clusters(
         verticalalignment="center",
     )
 
-    # Row 1
+    # Row 1, textbox 0
     large_axes[1].text(
         0,
         1,
         (
-            r"All images are scaled to be $\in$ [0, 1] for visualization."
-            f"\nThe encoding model used was {encoding_model.__class__.__name__}."
+            r"All images are scaled to be $\in$ [-0.5, 0.5] for visualization. "
+            f"The same colorbar applies for\nall colored images. "
+            f"The encoding model used was {encoding_model.__class__.__name__}."
             f"\nNeuron score is: {score[selected_neuron_idx]:.04f} | LRF correlation is {lrf_correlations[selected_neuron_idx]:.04f} | Encoding model correlation is {enc_correlations[selected_neuron_idx]:.04f}"
         ),
         fontsize=10,
@@ -139,21 +150,21 @@ def plot_neuron_x_with_8_clusters(
         verticalalignment="top",
     )
 
-    # Row 2
-    im_2_0 = axes[2][0].imshow(one_lrf)
+    # Row 2, lrf, roi, mask, mei
+    im_2_0 = axes[2][0].imshow(one_lrf, cmap="bwr")
     axes[2][0].set_title("LRF", fontsize=10)
 
-    im_2_1 = axes[2][1].imshow(one_roi)
+    im_2_1 = axes[2][1].imshow(one_roi, cmap="bwr")
     axes[2][1].set_title("ROI", fontsize=10)
 
     if mask is not None:
         im_2_2 = axes[2][2].imshow(one_mask, cmap="gray")
         axes[2][2].set_title("Mask", fontsize=10)
 
-    im_2_3 = axes[2][3].imshow(one_mei)
+    im_2_3 = axes[2][3].imshow(one_mei, cmap="bwr")
     axes[2][3].set_title(f"MEI | {one_mei_activation:.04f}", fontsize=10)
 
-    # Row 3
+    # Row 3, statistics of lrf and mei
     axes[3][0].text(
         0,
         1,
@@ -182,7 +193,7 @@ def plot_neuron_x_with_8_clusters(
         verticalalignment="top",
     )
 
-    # Row 4
+    # Row 4, textbox 1
     large_axes[2].text(
         0,
         1,
@@ -196,9 +207,9 @@ def plot_neuron_x_with_8_clusters(
         verticalalignment="top",
     )
 
-    # Row 5 & 6
+    # Row 5 & 6, epoch images
     for counter, (image, epoch) in enumerate(zip(epochs_tensor_list, epochs_slicer)):
-        axes[5][counter].imshow(image)
+        axes[5][counter].imshow(image, cmap="bwr")
         axes[5][counter].set_title(f"Epoch: {epoch}", fontsize=10)
         axes[6][counter].text(
             0,
@@ -214,7 +225,7 @@ def plot_neuron_x_with_8_clusters(
             verticalalignment="top",
         )
 
-    # Row 7
+    # Row 7, textbox 2
     large_axes[3].text(
         0,
         1,
@@ -228,11 +239,11 @@ def plot_neuron_x_with_8_clusters(
         verticalalignment="top",
     )
 
-    # Row 8 & 9
+    # Row 8 & 9, clusters 1-4
     for counter, (image, activation) in enumerate(
         zip(clusters_tensor_list[0:4], clusters_activation_list[0:4])
     ):
-        axes[8][counter].imshow(image)
+        axes[8][counter].imshow(image, cmap="bwr")
         axes[8][counter].set_title(
             f"Cluster {counter} | {activation:.04f}", fontsize=10
         )
@@ -250,11 +261,11 @@ def plot_neuron_x_with_8_clusters(
             verticalalignment="top",
         )
 
-    # Row 10 & 11
+    # Row 10 & 11, clusters 5-8
     for counter, (image, activation) in enumerate(
         zip(clusters_tensor_list[4:], clusters_activation_list[4:])
     ):
-        axes[10][counter].imshow(image)
+        axes[10][counter].imshow(image, cmap="bwr")
         axes[10][counter].set_title(
             f"Cluster {counter+4} | {activation:.04f}", fontsize=10
         )
@@ -271,6 +282,16 @@ def plot_neuron_x_with_8_clusters(
             horizontalalignment="left",
             verticalalignment="bottom",
         )
+
+    # row 11, colorbar
+    large_axes[4].axis("on")
+    fig.colorbar(
+        im_2_0,
+        cax=large_axes[4],
+        orientation="horizontal",
+    )
+
+    # Save overview image and config
     directory = (
         Path.cwd()
         / "reports"
@@ -279,10 +300,10 @@ def plot_neuron_x_with_8_clusters(
     )
     directory.mkdir(parents=True, exist_ok=True)
     plt.savefig(directory / f"Overview_neuron_{selected_neuron_idx}.png")
+    with open(directory / f"config_copy_for_reference.json", "w") as file:
+        file.write(json.dumps(config, indent=2))
 
 
-# %%
-# %%
 def plot_examples_of_generated_images(
     selected_neuron_idx: int,
     batch_counter: int,

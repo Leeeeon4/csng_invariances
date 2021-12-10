@@ -175,6 +175,10 @@ from rich import print
 from numpy import save
 from pathlib import Path
 import torch
+from csng_invariances.layers.loss_function import (
+    SelectedNeuronActivation,
+    SelectedNeuronActivityWithDiffernceInImage,
+)
 from csng_invariances.layers.mask import NaiveMask
 from csng_invariances.mei import load_meis
 from csng_invariances.metrics_statistics.correlations import (
@@ -200,7 +204,10 @@ from csng_invariances.data.preprocessing import (
 )
 from csng_invariances._utils.utlis import string_time
 from csng_invariances.metrics_statistics.clustering import cluster_generated_images
-from plotting import plot_examples_of_generated_images, plot_neuron_x_with_8_clusters
+from csng_invariances._utils.plotting import (
+    plot_examples_of_generated_images,
+    plot_neuron_x_with_8_clusters,
+)
 
 #%%
 
@@ -271,17 +278,35 @@ config = {}
 config["Timestamp"] = t
 intermediates = {}
 for neuron_counter, neuron in enumerate(selected_neuron_idxs):
+    # Print current Neuron
     print(f"Neuron {neuron_counter+1} / {len(selected_neuron_idxs)}")
+
+    # Create generator model
     generator_model = FullyConnectedGeneratorWithGaussianBlurring(
         output_shape=image_shape,
         latent_space_dimension=latent_space_dimension,
-        sigma=0.8,
+        sigma=0.8,  # sigma 0.5 still had artifact, sigma 1 not
         batch_norm=True,
     )
-    # sigma 0.5 still had artifact, sigma 1 not
+
+    # Create optimizer
+    optimizer = torch.optim.Adam(
+        params=generator_model.parameters(),
+        lr=0.0001,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=0.1,
+    )
+
+    # Create loss function
+    loss_function = SelectedNeuronActivityWithDiffernceInImage(1)
+
+    # Create trainer
     generator_trainer = NaiveTrainer(
         generator_model=generator_model,
         encoding_model=encoding_model,
+        optimizer=optimizer,
+        loss_function=loss_function,
         data=data,
         mask=mask,
         image_preprocessing=image_preprocessing,
@@ -292,6 +317,7 @@ for neuron_counter, neuron in enumerate(selected_neuron_idxs):
         prep_video=False,
         config=config,
     )
+
     generator_model, epochs_images, config = generator_trainer.train(neuron)
     t = config["Timestamp"] + "_" + config["wandb_name"]
     if generate:
