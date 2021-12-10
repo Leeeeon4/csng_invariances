@@ -74,7 +74,7 @@ def mei_generation():
         dnn_single_neuron_correlations, linear_filter_single_neuron_correlations
     )
     select_neuron_idx = select_neurons(selection_score, 5)
-    meis = mei(criterion, encoding_model, gwni, select_neuron_idx, epochs=2000)
+    meis = mei(criterion, encoding_model, gwni, select_neuron_idx, epochs=200)
 
 
 def load_mei(path: str, device: str = None) -> dict:
@@ -91,4 +91,5 @@ def load_mei(path: str, device: str = None) -> dict:
 
 
 if __name__ == "__main__":
-    load_mei("/home/leon/csng_invariances/data/processed/MEIs/2021-12-02_15:46:31")
+    # load_mei("/home/leon/csng_invariances/data/processed/MEIs/2021-12-02_15:46:31")
+    mei_generation()
