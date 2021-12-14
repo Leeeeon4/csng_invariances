@@ -36,7 +36,9 @@ def compute_single_neuron_correlations_encoding_model(
     single_neuron_correlations = torch.empty(neuron_count, device=device)
     predictions = torch.empty_like(responses)
     with torch.no_grad():
-        for batch in track(range(num_batches)):
+        for batch in track(
+            range(num_batches), description="Computing encoding model correlation"
+        ):
             image_batch = images[
                 (batch) * batch_size : (batch + 1) * batch_size, :, :, :
             ]
@@ -59,7 +61,10 @@ def compute_single_neuron_correlations_encoding_model(
             ),
             :,
         ] = prediction_last_batch
-    for neuron in track(range(neuron_count)):
+    for neuron in track(
+        range(neuron_count),
+        description="Finishing tensor build of single neuron correlations.",
+    ):
         single_neuron_correlation = corrcoef(
             responses[:, neuron].cpu(), predictions[:, neuron].cpu()
         )[0, 1]
@@ -81,6 +86,7 @@ def compute_single_neuron_correlations_encoding_model(
                 f"The order of neurons is the same as in the original data. Dimensions "
                 f"are: {single_neuron_correlation.shape}."
             )
+    print(f"The encoding model single neuron correlataions are stored in:\n{directory}")
     return single_neuron_correlations
 
 
@@ -106,7 +112,7 @@ def load_single_neuron_correlations_encoding_model(
         data_tensor.to(device)
     except Exception:
         print(
-            "An error occured. The file could not be loaddedd. Is the path correct? "
+            "An error occured. The file could not be loaded. Is the path correct? "
             "Is it a numpy file?"
         )
     return data_tensor

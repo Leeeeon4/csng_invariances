@@ -13,7 +13,8 @@ Subpackages
    :maxdepth: 4
 
    csng_invariances.data
-   csng_invariances.losses
+   csng_invariances.layers
+   csng_invariances.metrics_statistics
    csng_invariances.models
    csng_invariances.training
 
@@ -28,10 +29,18 @@ csng\_invariances.encoding module
    :undoc-members:
    :show-inheritance:
 
-csng\_invariances.generation module
------------------------------------
+csng\_invariances.generator module
+----------------------------------
 
-.. automodule:: csng_invariances.generation
+.. automodule:: csng_invariances.generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+csng\_invariances.image\_generation module
+------------------------------------------
+
+.. automodule:: csng_invariances.image_generation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,26 +53,10 @@ csng\_invariances.invariances module
    :undoc-members:
    :show-inheritance:
 
-csng\_invariances.linear\_receptive\_field module
--------------------------------------------------
+csng\_invariances.mei module
+----------------------------
 
-.. automodule:: csng_invariances.linear_receptive_field
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-csng\_invariances.mask module
------------------------------
-
-.. automodule:: csng_invariances.mask
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-csng\_invariances.select\_neurons module
-----------------------------------------
-
-.. automodule:: csng_invariances.select_neurons
+.. automodule:: csng_invariances.mei
    :members:
    :undoc-members:
    :show-inheritance:

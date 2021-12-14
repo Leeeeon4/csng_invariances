@@ -9,6 +9,8 @@ import torchvision
 from csng_invariances._utils.utlis import string_time
 import wandb
 
+from csng_invariances.metrics_statistics.select_neurons import load_score
+
 
 def get_lowpass_tensor(
     image: torch.Tensor, gradient_smoothing_factor: float = 0.1, device: str = None
@@ -39,6 +41,10 @@ def get_lowpass_tensor(
     lowpass = 1 / torch.maximum(
         one, (tw[None, :] ** 2 + th[:, None] ** 2) ** (gradient_smoothing_factor)
     )
+    print("lowpass tensor info:")
+    print(lowpass.dtype)
+    print(lowpass.device)
+    lowpass /= lowpass.mean()
     return lowpass
 
 
@@ -55,9 +61,19 @@ def lowpass_filtering_in_frequency_domain(
     Returns:
         torch.Tensor: filtered gradient
     """
-    f = image_grad.new_tensor(lowpass / lowpass.mean())
+
+    # f = image_grad.new_tensor(lowpass / lowpass.mean())
+    print("inputs:")
+    print("lowpass:")
+    print(lowpass)
+    print("image gradient:")
+    print(image_grad)
     pp = torch.fft.fft2(image_grad.data)
-    out = torch.fft.ifft2(pp * f)
+    print("pp (in frequency domain)")
+    print(pp)
+    out = torch.fft.ifft2(pp * lowpass)
+    print("out (in image domain)")
+    print(out)
     return out
 
 
@@ -100,11 +116,9 @@ def naive_gradient_ascent_step(
 
     # Backward pass, computes gradient: image.grad
     loss.backward()
-    print(image.grad)
 
     # Lowpass filtering of gradient
     a = lowpass_filtering_in_frequency_domain(image.grad, lowpass)
-    print(a)
 
     # Gradient ascent step as described by Walker et al. 2019.
     with torch.no_grad():
@@ -159,7 +173,7 @@ def mei(
     Returns:
         dict: Dictionary of neuron_idx and the associated MEI.
     """
-
+    print("Starting MEI computation.")
     meis = {}
     t = string_time()
     # Initialize Tensors for Low pass filtering
