@@ -3,10 +3,12 @@
 from pathlib import Path
 import torch
 from rich.progress import track
+from rich import print
 import matplotlib.pyplot as plt
-from numpy import save
+from numpy import log10, log2, save
 import torchvision
 from csng_invariances._utils.utlis import string_time
+from csng_invariances.data._data_helpers import scale_tensor_to_0_1
 import wandb
 
 from csng_invariances.metrics_statistics.select_neurons import load_score
@@ -41,9 +43,6 @@ def get_lowpass_tensor(
     lowpass = 1 / torch.maximum(
         one, (tw[None, :] ** 2 + th[:, None] ** 2) ** (gradient_smoothing_factor)
     )
-    print("lowpass tensor info:")
-    print(lowpass.dtype)
-    print(lowpass.device)
     lowpass /= lowpass.mean()
     return lowpass
 
@@ -61,19 +60,52 @@ def lowpass_filtering_in_frequency_domain(
     Returns:
         torch.Tensor: filtered gradient
     """
+    # print("inputs:")
 
-    # f = image_grad.new_tensor(lowpass / lowpass.mean())
-    print("inputs:")
-    print("lowpass:")
-    print(lowpass)
-    print("image gradient:")
-    print(image_grad)
-    pp = torch.fft.fft2(image_grad.data)
-    print("pp (in frequency domain)")
-    print(pp)
-    out = torch.fft.ifft2(pp * lowpass)
-    print("out (in image domain)")
-    print(out)
+    # print("lowpass:")
+    # print(lowpass.shape)
+    # fig, ax = plt.subplots(figsize=(3, 2))
+    # ax.imshow(lowpass)
+    # ax.set_title("lowpass filter")
+    # plt.show(block=False)
+    # plt.pause(1)
+    # plt.close("all")
+
+    # print("image gradient:")
+    batch_size, channels, height, width = image_grad.shape
+    image_grad = image_grad.squeeze()
+    # print(image_grad.shape)
+    # print("")
+    # fig, ax = plt.subplots(figsize=(3, 2))
+    # ax.imshow(image_grad)
+    # ax.set_title("gradient")
+    # plt.show(block=False)
+    # plt.pause(1)
+    # plt.close("all")
+
+    grad_fft = torch.fft.fft2(image_grad.data)
+    # print("pp (in frequency domain)")
+    # print(grad_fft.shape)
+    # print("")
+
+    filtered_tensor = (
+        grad_fft * lowpass
+    )  # convolution in frequency domain is dotproduct!
+    # print("filtered tensor (in frequency domain")
+    # print(filtered_tensor.shape)
+    # print("")
+
+    out = torch.fft.ifft2(filtered_tensor)
+    out = out.real
+    # print("out (in image domain)")
+    # print(out.shape)
+    out = out.reshape(batch_size, channels, height, width)
+    # fig, ax = plt.subplots(figsize=(3, 2))
+    # ax.imshow(out.squeeze())
+    # ax.set_title("Out")
+    # plt.show(block=False)
+    # plt.pause(1)
+    # plt.close("all")
     return out
 
 
@@ -118,7 +150,10 @@ def naive_gradient_ascent_step(
     loss.backward()
 
     # Lowpass filtering of gradient
-    a = lowpass_filtering_in_frequency_domain(image.grad, lowpass)
+    image.grad = lowpass_filtering_in_frequency_domain(image.grad, lowpass)
+    # scale gradient [0,255]
+    if image.grad.max() > 255:
+        image.grad = scale_tensor_to_0_1(image.grad).mul(255)
 
     # Gradient ascent step as described by Walker et al. 2019.
     with torch.no_grad():
@@ -127,7 +162,10 @@ def naive_gradient_ascent_step(
         )
         # Image blurring with gaussian blur
         image = torchvision.transforms.functional.gaussian_blur(image, 3, sigma)
-    image.grad = None
+        # scale image back to [0, 255]
+        if image.max() > 255:
+            # continue
+            image = scale_tensor_to_0_1(image).mul(255)
     return image
 
 
@@ -138,12 +176,12 @@ def mei(
     selected_neuron_indicies: list,
     device: str = None,
     lr_start: float = 1,
-    lr_end: float = 0.0001,
+    lr_end: float = 0.001,
     epochs: int = 200,
     show: bool = False,
     show_last: bool = True,
-    sigma_start: float = 1,
-    sigma_end: float = 0.05,
+    sigma_start: float = 0.03,  # not yet good parameters
+    sigma_end: float = 0.00001,  # not yet good parameters
     wandb_entity: str = "leeeeon4",
     *args: int,
     **kwargs: int,
@@ -177,10 +215,13 @@ def mei(
     meis = {}
     t = string_time()
     # Initialize Tensors for Low pass filtering
-    lowpass = get_lowpass_tensor(image)
+    sigma_start = log10(sigma_start)
+    sigma_end = log10(sigma_end)
+    print(sigma_start)
+    print(sigma_end)
     lrs = torch.linspace(lr_start, lr_end, epochs).tolist()
-    sigmas = torch.linspace(sigma_start, sigma_end, epochs).tolist()
-
+    sigmas = torch.logspace(sigma_start, sigma_end, epochs).tolist()
+    print(sigmas)
     for neuron_counter, neuron in enumerate(selected_neuron_indicies):
         # Initialize wandb, config and directories
         run = wandb.init(entity=wandb_entity, project=f"invariances_mei")
@@ -200,20 +241,23 @@ def mei(
             "sigma_start": sigma_start,
             "sigma_end": sigma_end,
         }
-        wandb_config.update(trainer_config)
+        wandb_config.update(trainer_config, allow_val_change=True)
 
         # initial step
-        old_image = image.detach().clone()
-        old_image.requires_grad = True
-        new_image = naive_gradient_ascent_step(
+        img = image.detach().clone()
+        img.requires_grad = True
+        lowpass = get_lowpass_tensor(image, sigmas[0])
+        naive_gradient_ascent_step(
             loss_function=loss_function,
             encoding_model=encoding_model,
             lr=lrs[0],
             sigma=sigmas[0],
-            image=old_image,
+            image=img,
             lowpass=lowpass,
             **trainer_config,
         )
+        # TODO image no longer has gradient
+        # print(img.grad)
         for epoch in track(
             range(epochs - 1),
             total=epochs,
@@ -221,19 +265,25 @@ def mei(
         ):
             epoch += 1
             # Do gradient Ascent step
-            new_image = naive_gradient_ascent_step(
+            lowpass = get_lowpass_tensor(image, sigmas[epoch])
+            naive_gradient_ascent_step(
                 loss_function=loss_function,
                 encoding_model=encoding_model,
                 lr=lrs[epoch],
                 sigma=sigmas[epoch],
-                image=new_image,
+                image=img,
                 lowpass=lowpass,
                 **trainer_config,
             )
 
+            # if img.max() > 255:
+            #     continue
+            # if img.grad.max() > 255:
+            #     continue
+            show = True
             if show and epoch % 10 == 0:
                 fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
-                im = ax.imshow(new_image.detach().numpy().squeeze())
+                im = ax.imshow(img.detach().numpy().squeeze())
                 ax.set_title(f"Image neuron {neuron} after {epoch} epochs")
                 plt.colorbar(im)
                 plt.tight_layout()
@@ -242,7 +292,7 @@ def mei(
                 plt.close()
         save(
             file=meis_directoy / f"MEI_neuron_{neuron}.npy",
-            arr=new_image.detach().cpu().numpy(),
+            arr=img.detach().cpu().numpy(),
         )
         if (meis_directoy / "readme.md").exists() is False:
             with open(meis_directoy / "readme.md", "w") as f:
@@ -252,10 +302,10 @@ def mei(
                     "of the image per neuron. Dimensions are (batchsize, channels, "
                     "height, width)."
                 )
-        meis[neuron] = new_image
+        meis[neuron] = img
         if show:
             fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
-            im = ax.imshow(new_image.detach().cpu().numpy().squeeze())
+            im = ax.imshow(img.detach().cpu().numpy().squeeze())
             ax.set_title(f"Final image neuron {neuron}")
             plt.colorbar(im)
             plt.tight_layout()
@@ -263,8 +313,8 @@ def mei(
             plt.pause(3)
             plt.close("all")
         if show_last:
-            img = new_image.detach().cpu().numpy().squeeze()
-            activations = encoding_model(new_image)
+            img = img.detach().cpu().numpy().squeeze()
+            activations = encoding_model(image)
             plt.imshow(img, cmap="gray")
             plt.colorbar()
             plt.title(f"Activation: {activations[:,neuron].item()}")

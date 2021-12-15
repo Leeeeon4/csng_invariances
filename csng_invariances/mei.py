@@ -9,6 +9,7 @@ import torch
 from csng_invariances.encoding import load_encoding_model
 from csng_invariances.metrics_statistics.correlations import (
     compute_single_neuron_correlations_encoding_model as dnn_corrs,
+    load_single_neuron_correlations_encoding_model,
 )
 from csng_invariances.metrics_statistics.correlations import (
     load_single_neuron_correlations_linear_filter,
@@ -64,11 +65,8 @@ def mei_generation():
     gwni = gaussian_white_noise_image(
         size=(1, images.shape[1], images.shape[2], images.shape[3])
     )
-    dnn_single_neuron_correlations = dnn_corrs(
-        encoding_model,
-        images,
-        responses,
-        batch_size=configs["dataset_config"]["batch_size"],
+    dnn_single_neuron_correlations = load_single_neuron_correlations_encoding_model(
+        "/Users/leongorissen/csng_invariances/reports/encoding/single_neuron_correlations/2021-12-14_16:29:16/single_neuron_correlations.npy"
     )
     linear_filter_single_neuron_correlations = load_single_neuron_correlations_linear_filter(
         "/Users/leongorissen/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-29_10:31:45/Correlations.csv"
@@ -96,3 +94,7 @@ def load_mei(path: str, device: str = None) -> dict:
 if __name__ == "__main__":
     # load_mei("/home/leon/csng_invariances/data/processed/MEIs/2021-12-02_15:46:31")
     mei_generation()
+
+# %%
+
+# %%

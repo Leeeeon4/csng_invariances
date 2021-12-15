@@ -245,6 +245,7 @@ class Lurz2021Dataset(NeuralDataset):
         Returns:
             Tuple: Tuple of image and response Tensor.
         """
+        print("Loading Dataset to memory.")
         if concat:
             images, responses = [], []
             for typ in ["train", "validation", "test"]:
