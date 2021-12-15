@@ -280,7 +280,7 @@ def mei(
             #     continue
             # if img.grad.max() > 255:
             #     continue
-            show = True
+            # show = True
             if show and epoch % 10 == 0:
                 fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
                 im = ax.imshow(img.detach().numpy().squeeze())
@@ -317,7 +317,9 @@ def mei(
             activations = encoding_model(image)
             plt.imshow(img, cmap="gray")
             plt.colorbar()
-            plt.title(f"Activation: {activations[:,neuron].item()}")
+            plt.title(
+                f"Activation: {activations[:,neuron].item()} | Start: {sigma_start}, End: {sigma_end}"
+            )
             image_title = f"mei_neuron_{neuron}.png"
             image_directory = Path.cwd() / "reports" / "figures" / "mei" / t
             image_directory.mkdir(parents=True, exist_ok=True)

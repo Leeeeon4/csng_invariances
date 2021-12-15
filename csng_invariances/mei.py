@@ -5,6 +5,7 @@ from pathlib import Path
 from numpy import load
 from rich.progress import track
 from rich import print
+import random
 import torch
 from csng_invariances.encoding import load_encoding_model
 from csng_invariances.metrics_statistics.correlations import (
@@ -51,11 +52,8 @@ def load_meis(path: str, device: str = None) -> dict:
 
 #%%
 def mei_generation():
-    # TODO finalize mei computation
 
-    model_directory = (
-        "/Users/leongorissen/csng_invariances/models/encoding/2021-11-12_17:00:58"
-    )
+    model_directory = "/home/leon/csng_invariances/models/encoding/2021-11-30_15:15:03"
     encoding_model = load_encoding_model(model_directory)
     configs = load_configs(model_directory)
     configs = adapt_config_to_machine(configs)
@@ -66,16 +64,29 @@ def mei_generation():
         size=(1, images.shape[1], images.shape[2], images.shape[3])
     )
     dnn_single_neuron_correlations = load_single_neuron_correlations_encoding_model(
-        "/Users/leongorissen/csng_invariances/reports/encoding/single_neuron_correlations/2021-12-14_16:29:16/single_neuron_correlations.npy"
+        "/home/leon/csng_invariances/reports/encoding/single_neuron_correlations/2021-12-10_12:09:04/single_neuron_correlations.npy"
     )
     linear_filter_single_neuron_correlations = load_single_neuron_correlations_linear_filter(
-        "/Users/leongorissen/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-10-29_10:31:45/Correlations.csv"
+        "/home/leon/csng_invariances/reports/linear_filter/global_hyperparametersearch/2021-11-30_15:15:09/Correlations.csv"
     )
     selection_score = score(
         dnn_single_neuron_correlations, linear_filter_single_neuron_correlations
     )
     select_neuron_idx = select_neurons(selection_score, 5)
-    meis = mei(criterion, encoding_model, gwni, select_neuron_idx, epochs=200)
+    sigma_starts = [random.random() for _ in range(200)]
+    sigma_ends = [random.random() / 10 for _ in range(200)]
+    for sigma_start, sigma_end in zip(sigma_starts, sigma_ends):
+        if sigma_start <= sigma_end:
+            continue
+        meis = mei(
+            criterion,
+            encoding_model,
+            gwni,
+            select_neuron_idx,
+            epochs=200,
+            sigma_start=sigma_start,
+            sigma_end=sigma_end,
+        )
 
 
 def load_mei(path: str, device: str = None) -> dict:
