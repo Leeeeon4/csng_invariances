@@ -1,5 +1,6 @@
 """Provide different discriminator models."""
 
+from typing import Tuple
 import torch
 import numpy as np
 import copy
@@ -27,6 +28,8 @@ from csng_invariances.data._data_helpers import (
 )
 
 from csng_invariances.data.datasets import Lurz2021Dataset
+
+from csng_invariances.layers.custom_layers import DogLayer
 
 
 def download_pretrained_lurz_model():
@@ -906,6 +909,27 @@ def load_encoding_model(model_directory):
     print(f"Model runs in evaluation mode on {device}.")
     model.eval()
     return model
+
+
+class HSM(nn.Module):
+    def __init__(
+        self,
+        image_shape: Tuple[int, int, int, int] = (1, 1, 36, 64),
+        num_lgn_units: int = 9,
+        hidden_units_fraction: float = 0.2,
+    ) -> None:
+        super().__init__()
+        self.batch_size, self.channels, self.height, self.width = image_shape
+        self.num_lgn_units = num_lgn_units
+        self.hidden_units_fraction = hidden_units_fraction
+        self.activation_function = 
+
+        self.stack = nn.Sequential(
+            DogLayer(
+                self.num_lgn_units, self.width, self.height
+            ),
+
+        )
 
 
 if __name__ == "__main__":

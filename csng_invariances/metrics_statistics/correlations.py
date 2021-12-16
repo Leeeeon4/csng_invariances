@@ -109,7 +109,7 @@ def load_single_neuron_correlations_encoding_model(
     try:
         data = load(path)
         data_tensor = torch.from_numpy(data)
-        data_tensor.to(device)
+        data_tensor = data_tensor.to(device)
     except Exception:
         print(
             "An error occured. The file could not be loaded. Is the path correct? "
@@ -167,7 +167,7 @@ def load_single_neuron_correlations_linear_filter(
         elif Path(path).suffix == ".npy":
             data = load(path)
             data_tensor = torch.from_numpy(data)
-            data_tensor.to(device)
+            data_tensor = data_tensor.to(device)
     except Exception as err:
         print(
             "An error occured. The file could not be loaded. Is the path correct? "

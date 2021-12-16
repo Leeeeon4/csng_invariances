@@ -1,31 +1,16 @@
-# current
-TODO trainer for generator training
-
-# Must be done
-TODO train readout Antolikdata (either learn gaussian or use other readout)
-TODO Linear filter analysis
-TODO train readout Lurzdata
-TODO try core spatialxfeaturelinear 
-TODO reread Sinzlab papers
-TODO strategically: reimplement model architecture and trainer, just on images and responses, so that antolik and lurz can be compared or try to use antolik on trained lurz model
-
 # Should be done
-TODO sort the whole dataset handling mess i made
 TODO reorganization of modules according to concepts
-TODO rename all private modules
-TODO Testing
-TODO change all np.save to torch.save for tensors and check type for all loading 
+ - csng_invariances: pipeline for one complete experiments computation
+ - csng_invariances/encoing: pipeline for encoding experiment
+ - csng_invariances/mei: pipeline for mei experiment
+ - csng_invariances/generator_training: pipeline for generator training
+ - csng_invariances/image_generation: pipeline for image image_generation
+ - csng_invariances/invariances: pipeline for invariance-analysis and plotting
+TODO pipeline run
 
 # Would be nice
-TODO figure out if import csng_invariances. ... or ...
-TODO refactor dataset
+TODO Testing
+TODO implement HSM Model
+TODO train Antolikdata on HSM Model
 
 # Notes
-Image preprocessing:
-    - option 1: unprocessed
-    - option 2: zero mean unit standard deviation
-    - option 3: globally scalled to be between 0 and 1
-    - option 4: combination of 2 and 3. 
-    - option 5: normalize by dividing through standard deviation
-    In Walker et al. 2019: everything is normalized
-    In Kovacs 2021: activations normalized by devision through standard deviation and images to zero mean and unit standard deviation

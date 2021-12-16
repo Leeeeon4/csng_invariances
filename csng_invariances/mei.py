@@ -5,7 +5,7 @@ from pathlib import Path
 from numpy import load
 from rich.progress import track
 from rich import print
-import random
+from math import log
 import torch
 from csng_invariances.encoding import load_encoding_model
 from csng_invariances.metrics_statistics.correlations import (
@@ -73,33 +73,34 @@ def mei_generation():
         dnn_single_neuron_correlations, linear_filter_single_neuron_correlations
     )
     select_neuron_idx = select_neurons(selection_score, 5)
-    sigma_starts = [random.random() for _ in range(200)]
-    sigma_ends = [random.random() / 10 for _ in range(200)]
-    for sigma_start, sigma_end in zip(sigma_starts, sigma_ends):
-        if sigma_start <= sigma_end:
-            continue
-        meis = mei(
-            criterion,
-            encoding_model,
-            gwni,
-            select_neuron_idx,
-            epochs=200,
-            sigma_start=sigma_start,
-            sigma_end=sigma_end,
-        )
+    sigma_starts = torch.logspace(log(0.1, 10), log(0.01, 10), 2)
+    denomiators = torch.logspace(log(10, 10), log(10000, 10), 25)
+    for sigma_start in sigma_starts:
+        sigma_start = sigma_start.item()
+        for denomiator in denomiators:
+            denomiator = denomiator.item()
+            meis = mei(
+                criterion,
+                encoding_model,
+                gwni,
+                select_neuron_idx,
+                epochs=100,
+                sigma_start=sigma_start,
+                sigma_end=sigma_start / denomiator,
+            )
 
 
-def load_mei(path: str, device: str = None) -> dict:
-    if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    path = Path(path)
-    meis = {}
-    for counter, file in enumerate(path.iterdir()):
-        mei = torch.from_numpy(load(file))
-        mei = mei.to(device)
-        meis[counter] = mei
-    print(meis)
-    return meis
+# def load_mei(path: str, device: str = None) -> dict:
+#     if device is None:
+#         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#     path = Path(path)
+#     meis = {}
+#     for counter, file in enumerate(path.iterdir()):
+#         mei = torch.from_numpy(load(file))
+#         mei = mei.to(device)
+#         meis[counter] = mei
+#     print(meis)
+#     return meis
 
 
 if __name__ == "__main__":

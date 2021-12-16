@@ -313,12 +313,17 @@ def mei(
             plt.pause(3)
             plt.close("all")
         if show_last:
+            from torchvision import transforms
+
+            norm = transforms.Normalize(0, 1)
+            img = norm(img)
+            # img = scale_tensor_to_0_1(img) + 0.5
             img = img.detach().cpu().numpy().squeeze()
             activations = encoding_model(image)
-            plt.imshow(img, cmap="gray")
+            plt.imshow(img, cmap="bwr")
             plt.colorbar()
             plt.title(
-                f"Activation: {activations[:,neuron].item()} | Start: {sigma_start}, End: {sigma_end}"
+                f"Activation: {round(activations[:,neuron].item(), 4)} | Start: {round(sigma_start, 2)}, End: {round(sigma_end, 2)}"
             )
             image_title = f"mei_neuron_{neuron}.png"
             image_directory = Path.cwd() / "reports" / "figures" / "mei" / t

@@ -1,6 +1,7 @@
 """Module provided by Luca Baroni."""
 
 #%%
+from typing import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
@@ -15,7 +16,7 @@ def gauss(x, y, mux, muy, A, sigma):
     return A * torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
 
 
-class dog_layer(nn.Module):
+class DogLayer(nn.Module):
     def __init__(self, num_units, input_size_x, input_size_y):
         """Difference of gaussian (dog) layer
         based on NDN3 Peter Houska implementation: https://github.com/NeuroTheoryUMD/NDN3/blob/master/layer.py
@@ -142,9 +143,24 @@ class dog_layer(nn.Module):
         return x
 
 
+class HSMActivation(nn.Module):
+    def __init__(self, input_size: int, output_size: int, device: str = None) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        thresholds = torch.empty(
+            size=(self.input_size, self.output_size),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=True,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x is vector
+        x = torch.log10(1 + torch.exp(x - self.ti_s))
+
+
 #%%
-dog = dog_layer(10, 64, 64)
-# dog.plot_dog(n=10)
-x = torch.randn(20, 64, 64)
-print(dog(x).shape)
-# %%
+#
