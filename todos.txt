@@ -1,14 +1,19 @@
+# Must be done
+- TODO move directory to projects
+
 # Should be done
 TODO reorganization of modules according to concepts
  - csng_invariances: pipeline for one complete experiments computation
- - csng_invariances/encoing: pipeline for encoding experiment
- - csng_invariances/mei: pipeline for mei experiment
- - csng_invariances/generator_training: pipeline for generator training
- - csng_invariances/image_generation: pipeline for image image_generation
- - csng_invariances/invariances: pipeline for invariance-analysis and plotting
+ - csng_invariances/csng_invariances/encoing: pipeline for encoding experiment, save report with config and correlation.
+ - csng_invariances/csng_invariances/mei: pipeline for mei experiment, save report with config and image.
+ - csng_invariances/csng_invariances/generator_training: pipeline for generator training, save report with config, loss and image.
+ - csng_invariances/csng_invariances/image_generation: pipeline for image image_generation, save images. 
+ - csng_invariances/csng_invariances/invariances: pipeline for invariance-analysis and plotting, save invariance-report. 
 TODO pipeline run
+TODO update docs and diagrams; add diagrams to docs 
 
 # Would be nice
+TODO further invariance-plots comparing two images: e.g. histogram, frequency-domain, ...
 TODO Testing
 TODO implement HSM Model
 TODO train Antolikdata on HSM Model
