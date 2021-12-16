@@ -10,7 +10,7 @@ TODO reorganization of modules according to concepts
  - csng_invariances/csng_invariances/image_generation: pipeline for image image_generation, save images. 
  - csng_invariances/csng_invariances/invariances: pipeline for invariance-analysis and plotting, save invariance-report. 
 TODO pipeline run
-TODO update docs and diagrams; add diagrams to docs 
+TODO update docs and diagrams; add diagrams to docs
 
 # Would be nice
 TODO further invariance-plots comparing two images: e.g. histogram, frequency-domain, ...

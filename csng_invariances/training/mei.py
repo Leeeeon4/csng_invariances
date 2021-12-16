@@ -217,11 +217,8 @@ def mei(
     # Initialize Tensors for Low pass filtering
     sigma_start = log10(sigma_start)
     sigma_end = log10(sigma_end)
-    print(sigma_start)
-    print(sigma_end)
     lrs = torch.linspace(lr_start, lr_end, epochs).tolist()
     sigmas = torch.logspace(sigma_start, sigma_end, epochs).tolist()
-    print(sigmas)
     for neuron_counter, neuron in enumerate(selected_neuron_indicies):
         # Initialize wandb, config and directories
         run = wandb.init(entity=wandb_entity, project=f"invariances_mei")
@@ -256,8 +253,6 @@ def mei(
             lowpass=lowpass,
             **trainer_config,
         )
-        # TODO image no longer has gradient
-        # print(img.grad)
         for epoch in track(
             range(epochs - 1),
             total=epochs,
@@ -275,12 +270,6 @@ def mei(
                 lowpass=lowpass,
                 **trainer_config,
             )
-
-            # if img.max() > 255:
-            #     continue
-            # if img.grad.max() > 255:
-            #     continue
-            # show = True
             if show and epoch % 10 == 0:
                 fig, ax = plt.subplots(figsize=(6.4 / 2, 3.6 / 2))
                 im = ax.imshow(img.detach().numpy().squeeze())
@@ -317,7 +306,6 @@ def mei(
 
             norm = transforms.Normalize(0, 1)
             img = norm(img)
-            # img = scale_tensor_to_0_1(img) + 0.5
             img = img.detach().cpu().numpy().squeeze()
             activations = encoding_model(image)
             plt.imshow(img, cmap="bwr")
