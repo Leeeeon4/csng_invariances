@@ -1,5 +1,6 @@
 """Provide different discriminator models."""
 
+from os import device_encoding
 from typing import Tuple
 import torch
 import numpy as np
@@ -29,7 +30,10 @@ from csng_invariances.data._data_helpers import (
 
 from csng_invariances.data.datasets import Lurz2021Dataset
 
-from csng_invariances.layers.custom_layers import DogLayer
+from csng_invariances.layers.custom_layers import (
+    DifferenceOfGaussiangLayer,
+    HSMCorticalBlock,
+)
 
 
 def download_pretrained_lurz_model():
@@ -911,25 +915,73 @@ def load_encoding_model(model_directory):
     return model
 
 
-# class HSM(nn.Module):
-#     def __init__(
-#         self,
-#         image_shape: Tuple[int, int, int, int] = (1, 1, 36, 64),
-#         num_lgn_units: int = 9,
-#         hidden_units_fraction: float = 0.2,
-#     ) -> None:
-#         super().__init__()
-#         self.batch_size, self.channels, self.height, self.width = image_shape
-#         self.num_lgn_units = num_lgn_units
-#         self.hidden_units_fraction = hidden_units_fraction
-#         self.activation_function =
+class HSMModel(nn.Module):
+    """HSM Model as presented by Antolik et al. 2016: Model Constrained by Visual
+    Hierarchy Improves Prediction of Neural Responses to Natural Scenes, available
+    at: https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004927
+    """
 
-#         self.stack = nn.Sequential(
-#             DogLayer(
-#                 self.num_lgn_units, self.width, self.height
-#             ),
+    def __init__(
+        self,
+        images_size: Tuple[int, int, int, int],
+        num_neurons: int,
+        num_lgn_units: int = 9,
+        hidden_units_fraction: float = 0.2,
+        device: str = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
+        self.batch_size, self.channels, self.height, self.width = images_size
+        self.num_neurons = num_neurons
+        self.num_lgn_units = num_lgn_units
+        self.hidden_units_fraction = hidden_units_fraction
+        # self.difference_of_gaussians_layer = DifferenceOfGaussiangLayer(
+        #     self.num_lgn_units, self.width, self.height, *args, **kwargs
+        # )
+        # self.cortical_layer_one = HSMCorticalBlock(
+        #     self.num_lgn_units,
+        #     int(self.num_neurons * self.hidden_units_fraction),
+        #     *args,
+        #     **kwargs,
+        # )
+        # self.cortical_layer_two = HSMCorticalBlock(
+        #     int(self.num_neurons * self.hidden_units_fraction),
+        #     self.num_neurons,
+        #     *args,
+        #     **kwargs,
+        # )
+        # self.stack = nn.Sequential(
+        #     self.difference_of_gaussians_layer,
+        #     self.cortical_layer_one,
+        #     self.cortical_layer_two,
+        # )
+        self.stack = nn.Sequential(
+            DifferenceOfGaussiangLayer(
+                self.num_lgn_units, self.width, self.height, *args, **kwargs
+            ),
+            HSMCorticalBlock(
+                self.num_lgn_units,
+                int(self.num_neurons * self.hidden_units_fraction),
+                *args,
+                **kwargs,
+            ),
+            HSMCorticalBlock(
+                int(self.num_neurons * self.hidden_units_fraction),
+                self.num_neurons,
+                *args,
+                **kwargs,
+            ),
+        )
+        self.stack.to(self.device)
 
-#         )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.stack(x)
+        return x
 
 
 if __name__ == "__main__":

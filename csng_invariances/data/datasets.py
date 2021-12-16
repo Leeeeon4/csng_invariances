@@ -159,6 +159,8 @@ class Antolik2016Dataset(NeuralDataset):
         self.val_images = self.val_images.reshape(
             50, self.channels, self.height, self.width
         )
+        self.images = self.images.float()
+        self.val_images = self.val_images.float()
 
     def __len__(self):
         return self.image_count
@@ -175,7 +177,7 @@ class Antolik2016Dataset(NeuralDataset):
         """
         image = self.image_preprocessing(self.images[idx, :, :, :])
         response = self.response_preprocessing(self.responses[idx, :])
-        return (image, response)
+        return image.float(), response.float()
 
     def get_dataset(self, concat: bool = False) -> Tuple:
         """Load and preprocess complete dataset.
@@ -197,7 +199,7 @@ class Antolik2016Dataset(NeuralDataset):
             f"{self.region} contains the responses of {responses.shape[1]} neurons "
             f"to {images.shape[0]} images."
         )
-        return (images, responses)
+        return images, responses
 
     def get_dataloaders(self):
         # TODO implement get_dataloaders function for Antolik dataset.

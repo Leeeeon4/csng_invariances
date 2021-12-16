@@ -304,7 +304,7 @@ def mei(
         if show_last:
             from torchvision import transforms
 
-            norm = transforms.Normalize(0, 1)
+            norm = transforms.Normalize(0, 1, True)
             img = norm(img)
             img = img.detach().cpu().numpy().squeeze()
             activations = encoding_model(image)
